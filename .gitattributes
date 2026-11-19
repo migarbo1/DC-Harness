@@ -1,0 +1,4 @@
+# bash can't run scripts with CRLF line endings (Q15).
+*.sh   text eol=lf
+*.bats text eol=lf
+*.json text eol=lf

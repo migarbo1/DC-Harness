@@ -1,0 +1,17 @@
+{
+  "name": "dc-harness",
+  "owner": {
+    "name": "Miguel García-Bohigues"
+  },
+  "metadata": {
+    "description": "DC-Harness: a developer-centered workflow harness that keeps agent-assisted development consistent, maintainable and understood by the developers who ship it."
+  },
+  "plugins": [
+    {
+      "name": "dc-harness",
+      "source": "./plugins/dc-harness",
+      "description": "Core workflow: /start-task, /continue, /blind-spot, /interview, /plan, /implement, /check, /task-quiz, /session-log, with hook-enforced gates.",
+      "version": "0.0.1"
+    }
+  ]
+}

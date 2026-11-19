@@ -1,0 +1,16 @@
+{
+  "name": "dc",
+  "displayName": "DC-Harness",
+  "version": "0.0.1",
+  "description": "Gated spec → plan → implement → assessment → PR-text workflow for Claude Code, enforced by hooks and a per-task state file",
+  "author": {
+    "name": "Nunsys"
+  },
+  "keywords": [
+    "workflow",
+    "sdd",
+    "gates",
+    "hooks",
+    "harness"
+  ]
+}
