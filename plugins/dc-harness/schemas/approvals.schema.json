@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DC-Harness .tasks/<folder>/approvals.json",
+  "description": "Written only by approval-capture.sh. Documentation only; nothing validates this at runtime. See docs/contracts.md §3.",
+  "type": "object",
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Format version. Written, never checked.",
+      "type": "integer",
+      "const": 1
+    },
+    "spec": {
+      "description": "Latest spec approval; replaced on re-approval.",
+      "$ref": "#/$defs/approval"
+    },
+    "plan": {
+      "description": "Latest plan approval; replaced on re-approval.",
+      "$ref": "#/$defs/approval"
+    },
+    "assessment": {
+      "description": "The developer's prompts during the current assessment run, word for word. Reset when /dc:assessment is typed.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["at", "session", "text"],
+        "properties": {
+          "at": { "type": "string", "format": "date-time" },
+          "session": { "type": "string" },
+          "text": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "approval": {
+      "type": "object",
+      "required": ["phrase", "at", "session", "sha256"],
+      "properties": {
+        "phrase": { "description": "The phrase as typed, trimmed.", "type": "string" },
+        "at": { "description": "ISO 8601 UTC.", "type": "string", "format": "date-time" },
+        "session": { "description": "session_id from the hook payload.", "type": "string" },
+        "sha256": {
+          "description": "SHA-256 of the file's raw bytes when approved.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

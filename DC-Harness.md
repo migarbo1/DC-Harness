@@ -26,8 +26,8 @@ paths" in the v0 development process).
 | --- | --- | --- | --- |
 | `/dc:start-task <description>` | v0 | Checks the working tree is clean, HEAD is not detached, no task is already open and the branch is not in `protectedBranches`; with no description, stops and explains the command. Records the current commit hash (commit-ref), which later diffs are taken against. Asks clarifying questions one at a time until the description is concrete, writes the spec for the developer to review, then says "type 'specification agreed', then run `/dc:plan`" and stops | `spec.md`, `state.json` (commit-ref) |
 | `/dc:plan` | v0 | Needs `spec.md` approved with "specification agreed" and unchanged since. Read-only on the code: maps dependencies, slices the work vertically, writes and orders tasks, and groups them into checkpoints (each with an ID, its tasks and acceptance criteria). Then says "type 'Plan agreed', run `/clear`, then `/dc:implement`" and stops | `plan.md` |
-| `/dc:implement [<checkpoint>]` | v0 | Needs `plan.md` approved with "Plan agreed" and unchanged since, in a session other than the one that ran `/dc:plan`. Implements, tests and verifies one checkpoint (the one given, or the first one not yet done), running the `full` stack check before writing the notes entry, then stops for the developer to check. If a test fails in code the task didn't touch, it stops and tells the developer instead of fixing it. It refuses a checkpoint already done, or one whose earlier checkpoints aren't done. Stops and asks before deviating from the plan. Never commits | code, tests, `implementation-notes.md` (one entry per checkpoint: changes and small technical decisions) |
-| `/dc:assessment` | v0 | Needs every checkpoint of the plan in `implementation-notes.md`. Takes the diff from commit-ref plus untracked files, and the notes. Writes the expected answers first, then asks 3 to 7 questions one at a time, depending on the diff size. A wrong answer gets a rephrase, a hint and a related question; "not sure" gets an explanation and a related question; retries per question are limited by `assessment.maxRetriesPerQuestion`. Ends with a passed/total score, compared with `assessment.passThreshold` | `assessment.md` (questions, the developer's answers word for word, score passed/total, passed or not passed) |
+| `/dc:implement [<checkpoint>]` | v0 | Needs `plan.md` approved with "Plan agreed" and unchanged since, in a session other than the one that ran `/dc:plan`. Implements, tests and verifies one checkpoint, always the first one not yet done (the plan is written in implementation order), running the `full` stack check before writing the notes entry, then stops for the developer to check. Every test must pass: a failing test is treated as caused by the task, and the agent fixes it. It refuses any checkpoint other than that one. Stops and asks before deviating from the plan. Never commits | code, tests, `implementation-notes.md` (one entry per checkpoint: changes and small technical decisions) |
+| `/dc:assessment` | v0 | Needs every checkpoint of the plan in `implementation-notes.md`. Takes the diff from commit-ref plus untracked files, and the notes. Writes the expected answers first, then asks `assessment.numQuestions` questions one at a time. A wrong answer gets a rephrase, a hint and a related question; "not sure" gets an explanation and a related question; retries per question are limited by `assessment.maxRetriesPerQuestion`. Ends with a passed/total score, compared with `assessment.passThreshold` | `assessment.md` (questions, the developer's answers word for word, score passed/total, passed or not passed) |
 | `/dc:pr-text` | v0 | Needs `spec.md` and a finished assessment. Reads `spec.md`, `plan.md`, `implementation-notes.md` and `assessment.md` and summarises what was built (spec), how and the key decisions (plan and notes), deviations from the plan (notes), gate status, and what the developer understood (assessment score, with the questions and the developer's answers). At most `prTextMaxChars` characters (default 3,000, because Azure DevOps PR descriptions are limited to 4,000). The developer pastes it into the PR by hand | `pr-text.md` |
 | `/dc:continue` | v1 | Runs the next step of the workflow and stops at every gate | — |
 | `/dc:check` | v1 | Compares the plan with the real diff: planned but missing, built but not planned, missing tests | `check.md` |
@@ -49,7 +49,7 @@ The gates are the only places that need the developer's input, either in the for
   work from the files alone. `/dc:implement` refuses to run in the session that wrote the plan, so
   the developer runs `/clear` (which starts a new session) first. If the new session can't build
   from the files alone, the plan was incomplete.
-- **Assessment.** Between 3 and 7 questions about the diff, depending on its size, asked one at a
+- **Assessment.** `assessment.numQuestions` questions about the diff (default 4), asked one at a
   time; the expected answers are written before the first question is asked. A wrong or unsure
   answer gets an explanation and a related question, up to `assessment.maxRetriesPerQuestion`
   retries per question. The developer's answers are recorded word for word. It ends with a
@@ -62,8 +62,9 @@ Don't merge or rebase during a task: other people's changes would end up in the 
 
 ### State and enforcement
 
-- **`state.json`**: which steps are done, which is next, the
-  commit-ref, which gate is open, and the session IDs of `/dc:plan` and `/dc:implement`. Only **`task-state.sh`** writes it: every
+- **`state.json`**: the commit-ref, the last skill run, which gate is open, and the session ID of
+  `/dc:plan`. Which steps are done is read from the task's files (spec, plan, notes, assessment,
+  PR text), not stored. Only **`task-state.sh`** writes it: every
   skill starts by running `task-state.sh <skill>`, which checks the skill's preconditions and
   refuses with a one-line instruction if something is missing.
 - **`approvals.json`**: for the spec and the plan, the approval phrase as typed, its time, the
@@ -75,10 +76,10 @@ Don't merge or rebase during a task: other people's changes would end up in the 
 
 | Hook | When | Does |
 | --- | --- | --- |
-| Session recorder (`SessionStart`) | v0 | Records the session ID, for the fresh-session rule |
+| Session recorder (`SessionStart`) | fallback | Records the session ID, for the fresh-session rule. Only needed if skills can't read the session ID directly (`${CLAUDE_SESSION_ID}`) |
 | Approval capture (`UserPromptSubmit`) | v0 | While a gate is open, records the approval phrase with the hash of `spec.md` or `plan.md`, or an assessment answer word for word |
-| Harness guard (`PreToolUse`) | v0 | Blocks the agent from writing `state.json`, `approvals.json` or `.harness/` |
-| Stop check (`Stop`) | v0 | Only when the agent changed files in that turn: doesn't let it finish the turn until lint, type checks and the affected tests pass. Turns that change no files are not checked |
+| Harness guard (`PreToolUse`) | v0 | Blocks the agent from writing the harness's own files (`state.json`, `approvals.json`, `stop-check.json`, `.harness/`). While writing the spec or the plan, also blocks any change outside the task folder: those steps are read-only |
+| Stop check (`Stop`) | v0 | During `/dc:implement`, only when the agent changed files in that turn: doesn't let it finish the turn until lint, type checks and the affected tests pass. Turns that change no files are not checked |
 | Order guard | v1 | Blocks skills run out of order (until then, each skill's precondition check does this) |
 | Protect files, bash guard | v1 | Block edits to `.env*`, lockfiles and `.git/`; block `rm -rf` outside the repo, `git reset --hard`, force pushes |
 | Format on edit, version check | v1 | Run the formatter on each edited file; warn when the plugin or the project's rules are outdated |
@@ -88,12 +89,12 @@ Don't merge or rebase during a task: other people's changes would end up in the 
 A repo is **onboarded** when it has a committed `.harness/` folder. Everywhere else the harness
 does nothing. Only the tech lead changes `.harness/`; the agent can't.
 
-- **`.harness/config.json`** keys: `stack` (which stack layer applies), `stackCommands`
-  (override the lint, type, test and format commands), `protectedBranches`,
-  `specApprovalPhrase` and `planApprovalPhrase` (each a list), `assessment.passThreshold`,
-  `assessment.maxRetriesPerQuestion`, `prTextMaxChars`. v1: `stacks[]` (several stacks in one
-  repo), `language`.
-  Unknown keys are refused.
+- **`.harness/config.json`** keys: `stack` (the list of stack layers that apply),
+  `stackCommands` (per stack, override the lint, types and tests commands), `protectedBranches`,
+  `specApprovalPhrase` and `planApprovalPhrase` (each a list), `assessment.numQuestions`,
+  `assessment.passThreshold`, `assessment.maxRetriesPerQuestion`, `prTextMaxChars`. v1:
+  `language`. The config isn't validated: setting it correctly is the tech lead's job. Full
+  contract in `docs/contracts.md`.
 - **`.harness/AGENTS.md`**: about ten "how to work" rules for the agent, imported by the
   project's own `AGENTS.md` or `CLAUDE.md`.
 - **Stack layer**: per language, a `stack-check.sh` that runs the checks in two sizes, plus

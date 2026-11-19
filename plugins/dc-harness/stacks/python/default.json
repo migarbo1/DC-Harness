@@ -1,0 +1,5 @@
+{
+    "lint": "ruff check .",
+    "types": "mypy .",
+    "tests": "pytest"
+}

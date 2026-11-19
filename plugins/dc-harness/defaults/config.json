@@ -1,0 +1,24 @@
+{
+    "schemaVersion": 1,
+    "stack": [
+        "python"
+    ],
+    "stackCommands": {},
+    "protectedBranches": [
+        "main",
+        "master",
+        "develop"
+    ],
+    "specApprovalPhrase": [
+        "Specification agreed"
+    ],
+    "planApprovalPhrase": [
+        "Plan agreed"
+    ],
+    "assessment": {
+        "passThreshold": 0.7,
+        "maxRetriesPerQuestion": 2,
+        "numQuestions": 4
+    },
+    "prTextMaxChars": 3000
+}

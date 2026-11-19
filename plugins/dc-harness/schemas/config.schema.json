@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DC-Harness .harness/config.json",
+  "description": "Documentation and editor autocomplete only; nothing validates this at runtime. See docs/contracts.md §1.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "description": "Format version. Written, never checked.",
+      "type": "integer",
+      "const": 1
+    },
+    "stack": {
+      "description": "Stacks in this repo, in the order their checks run. Each is a folder in stacks/.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["python"]
+    },
+    "stackCommands": {
+      "description": "Per-stack overrides, keyed by stack name. A missing key uses stacks/<stack>/default.json; null or \"\" skips that check.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "lint": { "type": ["string", "null"] },
+          "types": { "type": ["string", "null"] },
+          "tests": {
+            "description": "In the 'affected' size, test file paths are appended to this command.",
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "default": {}
+    },
+    "protectedBranches": {
+      "description": "Branches where /dc:start-task refuses. Bash glob patterns.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["main", "master", "develop"]
+    },
+    "specApprovalPhrase": {
+      "description": "Phrases that approve spec.md. Exact match after trimming, ignoring case.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["Specification agreed"]
+    },
+    "planApprovalPhrase": {
+      "description": "Phrases that approve plan.md. Exact match after trimming, ignoring case.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["Plan agreed"]
+    },
+    "assessment": {
+      "type": "object",
+      "properties": {
+        "numQuestions": {
+          "description": "Number of assessment questions.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 4
+        },
+        "passThreshold": {
+          "description": "Passed when passed / total >= this share.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        },
+        "maxRetriesPerQuestion": {
+          "description": "Retries after the first wrong or 'not sure' answer.",
+          "type": "integer",
+          "minimum": 0,
+          "default": 2
+        }
+      }
+    },
+    "prTextMaxChars": {
+      "description": "Hard limit on pr-text.md. Azure DevOps allows 4,000.",
+      "type": "integer",
+      "minimum": 1,
+      "default": 3000
+    }
+  }
+}

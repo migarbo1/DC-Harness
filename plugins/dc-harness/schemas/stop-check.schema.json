@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DC-Harness .tasks/<folder>/stop-check.json",
+  "description": "Written only by stop-check.sh. Documentation only; nothing validates this at runtime. See docs/contracts.md §5.5.",
+  "type": "object",
+  "required": ["schemaVersion", "lastPassedTree"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Format version. Written, never checked.",
+      "type": "integer",
+      "const": 1
+    },
+    "lastPassedTree": {
+      "description": "git tree hash of the working tree at the last passing affected check.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  }
+}

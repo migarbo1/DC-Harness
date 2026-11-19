@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DC-Harness .tasks/<folder>/state.json",
+  "description": "Written only by task-state.sh. Documentation only; nothing validates this at runtime. See docs/contracts.md §2.",
+  "type": "object",
+  "required": ["schemaVersion", "branch", "commitRef", "startedAt", "step", "gate", "planSession"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Format version. Written, never checked.",
+      "type": "integer",
+      "const": 1
+    },
+    "branch": {
+      "description": "The branch name as git reports it.",
+      "type": "string"
+    },
+    "commitRef": {
+      "description": "HEAD when /dc:start-task ran. Every diff is taken from here.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "startedAt": {
+      "description": "When the task started, ISO 8601 UTC.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "step": {
+      "description": "The last skill whose preconditions passed.",
+      "enum": ["start-task", "plan", "implement", "assessment", "pr-text"]
+    },
+    "gate": {
+      "description": "Which gate approval-capture.sh listens for.",
+      "enum": ["spec", "plan", "assessment", null]
+    },
+    "planSession": {
+      "description": "session_id that ran /dc:plan. /dc:implement refuses in the same session.",
+      "type": ["string", "null"]
+    }
+  }
+}
