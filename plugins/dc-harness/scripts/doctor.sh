@@ -194,7 +194,46 @@ else
        "add '*.sh text eol=lf' to .gitattributes, then check the files out again"
 fi
 
-# 8. Development tools, only with --dev.
+# 8. Windows only: the `bash` that PowerShell finds must be Git's (spike S2).
+#    On Windows, Claude Code often runs commands through its PowerShell tool, and the
+#    skills call `bash ...`. If PowerShell finds WSL's bash (C:\Windows\System32\bash.exe)
+#    first, it can't run C:/ paths and every skill fails.
+#    The check asks PowerShell itself: inside Git Bash, Git's usr\bin is always on the
+#    PATH, so looking at this shell's PATH would prove nothing.
+case "$platform" in
+  MINGW*|MSYS*)
+    git_root=$(cygpath -w /)              # where Git is installed, e.g. C:\Program Files\Git\
+    git_usr_bin=$(cygpath -w /usr/bin)    # the folder that must be on the Windows PATH
+
+    path_fix="add Git's usr\\bin to the SYSTEM Path, ahead of System32 (needs admin rights):
+           1. Start > type 'Edit the system environment variables' > Environment Variables
+           2. Under 'System variables' select Path > Edit > New, and paste:
+              $git_usr_bin
+           3. Click 'Move Up' until it is above %SystemRoot%\\system32, then OK
+           4. Restart your terminals and Claude Code
+           A User Path entry is not enough: Windows reads the System Path first."
+
+    if ! command -v powershell.exe >/dev/null 2>&1; then
+      warn "powershell.exe not found, can't check which bash PowerShell runs" \
+           "run this check from a normal Git Bash window on Windows"
+    else
+      powershell_bash=$(powershell.exe -NoProfile -NonInteractive -Command \
+        "(Get-Command bash -ErrorAction SilentlyContinue | Select-Object -First 1).Source" \
+        2>/dev/null | tr -d '\r')
+
+      # Compare in lower case: Windows paths are case-insensitive.
+      if [ -z "$powershell_bash" ]; then
+        fail "PowerShell finds no bash" "$path_fix"
+      elif [[ "${powershell_bash,,}" == "${git_root,,}"* ]]; then
+        ok "PowerShell runs Git's bash ($powershell_bash)"
+      else
+        fail "PowerShell runs $powershell_bash, not Git's bash" "$path_fix"
+      fi
+    fi
+    ;;
+esac
+
+# 9. Development tools, only with --dev.
 if [ "$DEV" -eq 1 ]; then
   if command -v bats >/dev/null 2>&1; then
     ok "bats $(bats --version | first_version)"
