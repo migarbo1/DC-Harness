@@ -12,8 +12,8 @@
 # What it does:
 #   1. Copies the dogfood project without its .venv, caches and build output.
 #   2. Creates .venv and installs the project with its dev extras (pip install -e ".[dev]").
-#   3. Onboards it: .harness/config.json, .harness/AGENTS.md, CLAUDE.md import line,
-#      `.tasks/` in .gitignore. (Replace with onboard-repo.sh once Phase 1 writes it.)
+#   3. Onboards it with onboard-repo.sh (.harness/, CLAUDE.md import line, `.tasks/` in
+#      .gitignore), then sets stackCommands to the venv's python.
 #   4. Wires the plugin to THIS working tree, two ways:
 #        - `claude plugin marketplace add/install --scope project` registers this repo as a
 #          directory marketplace and enables dc@dc-harness in .claude/settings.json (used by
@@ -22,7 +22,8 @@
 #        - dev-claude.sh starts the CLI with --plugin-dir, which also loads in place and wins
 #          over the settings copy when both are present.
 #      Either way, edits apply after /reload-plugins or in a new session, with no version bump.
-#   5. git init on `main`, one commit, then a `sandbox` branch to work on (main is protected).
+#   5. One commit on `main` (the repo is created in step 3), then a `sandbox` branch to work
+#      on (main is protected).
 #   6. Runs the full checks (ruff, ruff format, mypy, pytest) once and times them.
 #
 # Exit codes:
@@ -154,49 +155,32 @@ if [ "$VENV" -eq 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Onboard (stand-in for onboard-repo.sh)
+# 3. Onboard, with onboard-repo.sh (it needs a git repo, so git init comes first)
 # ---------------------------------------------------------------------------
 
 step "Onboard the project"
 
-mkdir -p "$TARGET/.harness"
+git -C "$TARGET" init --quiet --initial-branch=main || die "git init failed"
+onboard_out=$(bash "$SCRIPT_DIR/onboard-repo.sh" "$TARGET") ||
+  { echo "$onboard_out"; die "onboard-repo.sh failed"; }
+printf '%s\n' "$onboard_out" | grep -E '^ +\[' || true
 
-# config.json: the plugin defaults, with the dogfood project's real commands.
+# The dogfood project's real commands, through the venv's python (hooks don't activate it).
 # `mypy` with no path: pyproject.toml lists the files ([tool.mypy] files).
-jq --arg py "$VENV_PY" '
+if ! jq --arg py "$VENV_PY" '
   .stackCommands = {
     python: {
       lint:  ($py + " -m ruff check . && " + $py + " -m ruff format --check ."),
       types: ($py + " -m mypy"),
       tests: ($py + " -m pytest")
     }
-  }' "$PLUGIN_DIR/defaults/config.json" > "$TARGET/.harness/config.json" \
-  || die "could not write .harness/config.json"
-ok ".harness/config.json"
-
-if [ -f "$PLUGIN_DIR/AGENTS.template.md" ]; then
-  cp "$PLUGIN_DIR/AGENTS.template.md" "$TARGET/.harness/AGENTS.md"
-  ok ".harness/AGENTS.md (from AGENTS.template.md)"
-else
-  printf '# Harness rules\n\n(AGENTS.template.md is not written yet: Phase 1, step 6.)\n' \
-    > "$TARGET/.harness/AGENTS.md"
-  ok ".harness/AGENTS.md (placeholder: AGENTS.template.md not written yet)"
+  }' "$TARGET/.harness/config.json" | tr -d '\r' > "$TARGET/.harness/config.tmp"; then
+  die "could not set stackCommands in .harness/config.json"
 fi
+mv -f "$TARGET/.harness/config.tmp" "$TARGET/.harness/config.json"
+ok ".harness/config.json: stackCommands use $VENV_PY"
 
-# The project's own CLAUDE.md gets one import line.
-IMPORT_LINE="@.harness/AGENTS.md"
-if [ -f "$TARGET/CLAUDE.md" ] && grep -qxF "$IMPORT_LINE" "$TARGET/CLAUDE.md"; then
-  ok "CLAUDE.md already imports .harness/AGENTS.md"
-else
-  printf '%s\n' "$IMPORT_LINE" >> "$TARGET/CLAUDE.md"
-  ok "CLAUDE.md imports .harness/AGENTS.md"
-fi
-
-if ! grep -qxF ".tasks/" "$TARGET/.gitignore" 2>/dev/null; then
-  printf '\n# DC-Harness task folders (local only)\n.tasks/\n' >> "$TARGET/.gitignore"
-fi
 printf '%s\n' "$MARKER" >> "$TARGET/.gitignore"
-ok ".gitignore has .tasks/"
 
 # ---------------------------------------------------------------------------
 # 4. Wire the plugin to this working tree
@@ -234,7 +218,7 @@ step "Initialise git"
 
 (
   cd "$TARGET" &&
-  git init --quiet --initial-branch=main &&
+  # The repo was created before onboarding (step 3).
   # Keep files as copied (LF): a global core.autocrlf=true would warn on every file and
   # convert line endings that the hooks hash.
   git config core.autocrlf false &&
