@@ -20,7 +20,7 @@ set -u
 
 MIN_BASH_MAJOR=4   # associative arrays, ${var,,}, mapfile
 MIN_GIT=2.22       # git branch --show-current
-MIN_JQ=1.7         # minimum jq version the harness is tested with
+MIN_JQ=1.8         # minimum jq version the harness is tested with
 
 # The plugin root is the folder above this script's folder (plugins/dc-harness/).
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

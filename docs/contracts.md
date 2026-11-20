@@ -78,11 +78,18 @@ Each stack has three commands: `lint`, `types` and `tests`. Its defaults live in
 `stacks/<stack>/default.json`:
 
 ```json
-{ "lint": "ruff check .", "types": "mypy .", "tests": "pytest" }
+{ "lint": "ruff check . && ruff format --check .", "types": "mypy", "tests": "pytest" }
 ```
 
-(The Python commands are placeholders until Phase 0 step 5 reads the real ones from the dogfood
-repo.)
+The Python defaults are the dogfood project's own checks (Phase 0 step 5). `mypy` has no path, so
+it checks the files listed in the project's `[tool.mypy] files`; a path on the command line would
+replace that list. On the dogfood sandbox the full run takes about 6 s (lint 0.7 s, mypy 2.9 s,
+pytest 2.1 s; 2026-11-20).
+
+The defaults are bare commands: they expect the tools on the `PATH`. Hooks run from the Claude
+Code process, which doesn't activate the project's virtual environment, so a project whose tools
+live in a venv overrides the commands to call them through it (for example
+`.venv/Scripts/python.exe -m pytest`, or `uv run pytest`).
 
 A project overrides only what differs:
 
