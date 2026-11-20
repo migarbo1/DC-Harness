@@ -2,7 +2,7 @@
 # doctor.sh: checks that this machine has what the DC-Harness plugin needs.
 #
 # Usage: doctor.sh [--dev] [--quiet]
-#   --dev    also check the tools needed to DEVELOP the harness (bats, shellcheck)
+#   --dev    also check the tools needed to DEVELOP the harness (bats, shellcheck, ajv-cli)
 #   --quiet  print only warnings and failures (for use from a SessionStart hook)
 #
 # Exit codes:
@@ -245,6 +245,13 @@ if [ "$DEV" -eq 1 ]; then
     ok "shellcheck $(shellcheck --version | first_version)"
   else
     fail "shellcheck not found" "install shellcheck: winget install koalaman.shellcheck"
+  fi
+
+  # dev-check.sh uses ajv-cli to compile the JSON schemas and check files against them.
+  if command -v ajv >/dev/null 2>&1; then
+    ok "ajv-cli found"
+  else
+    fail "ajv not found" "install ajv-cli (draft 2020-12 needs v5): npm install -g ajv-cli@5"
   fi
 fi
 

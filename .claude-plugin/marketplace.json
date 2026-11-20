@@ -8,9 +8,9 @@
   },
   "plugins": [
     {
-      "name": "dc-harness",
+      "name": "dc",
       "source": "./plugins/dc-harness",
-      "description": "Core workflow: /start-task, /continue, /blind-spot, /interview, /plan, /implement, /check, /task-quiz, /session-log, with hook-enforced gates.",
+      "description": "Gated task workflow: /dc:start-task, /dc:plan, /dc:implement, /dc:assessment, /dc:pr-text, with hook-enforced approvals and checks.",
       "version": "0.0.1"
     }
   ]
