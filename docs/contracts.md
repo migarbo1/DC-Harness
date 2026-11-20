@@ -19,7 +19,8 @@ General rules for every JSON file below:
   documentation and editor autocomplete. Unknown keys are ignored.
 - **Reading and writing go through `lib/json.sh`** (from spike S6): strip `\r` from everything read
   back from jq; pass text into jq with `--arg`, `--rawfile` or stdin, never through an environment
-  variable. Files written by jq have CRLF line endings.
+  variable. `json_update` strips the `\r` that jq writes on Windows, so the files have LF line
+  endings on every platform.
 - Times are ISO 8601 in UTC (`date -u +%FT%TZ`), for example `2026-11-19T10:15:00Z`.
 
 ## 1. `config.json`
