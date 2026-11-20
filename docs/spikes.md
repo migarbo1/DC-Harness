@@ -12,6 +12,7 @@ it. How to run them is in `check-spikes.md`.
 | S5 | Install and update from Azure DevOps without a password prompt? | **Not run** | Waiting for the repo in Azure DevOps |
 | S6 | Does `jq` on Windows handle line endings and non-English characters? | **Pass, with rules** | Strip `\r`; pass text with `--arg` or stdin, never through the environment |
 | S7 | Do `/dc:` commands run, and does `${CLAUDE_PLUGIN_ROOT}` work with spaces? | **Pass** | Call scripts through `${CLAUDE_PLUGIN_ROOT}` as planned; `bin/` stays as fallback |
+| S8 | Is `${CLAUDE_SESSION_ID}` replaced in SKILL.md text (contracts §2.5)? | **Pass** (CLI) | Skills pass it as an argument to `task-state.sh`; no `session-recorder.sh` in v0 |
 
 ## Test environment
 
@@ -173,8 +174,38 @@ the bytes.
 `bin/` stays as the fallback. Docs always use the full `/dc:` form; the short form works only while
 no other command has the same name.
 
+## S8: `${CLAUDE_SESSION_ID}` in SKILL.md text
+
+**What I did** (2026-11-20, Claude Code CLI 2.1.328, `claude-haiku-5-5`): added
+`skills/session/SKILL.md` to the spike plugin. It prints `TEXT-SESSION=${CLAUDE_SESSION_ID}`, then
+runs `bash "${CLAUDE_PLUGIN_ROOT}/scripts/session.sh" "${CLAUDE_SESSION_ID}"`, the same form as the
+`task-state.sh` call. Ran it once with
+`claude -p "/dcspike:session" --plugin-dir ./_spikes/dc-spike --output-format json`.
+
+**Result:** pass, in the CLI.
+
+| Where | Session ID seen | Evidence |
+| --- | --- | --- |
+| Skill text (`TEXT-SESSION=`) | `3cff0dac-…-44393373b425` | CLI JSON `result` |
+| Script argument | the same ID, as one argument | `.spike-log/index.log` (`session.sh arg=[…]`) |
+| `UserPromptSubmit` and `PreToolUse` payloads | the same ID in `session_id` | `125424-47930-UserPromptSubmit.json`, `125426-47937-PreToolUse.json` |
+| `CLAUDE_SESSION_ID` environment variable in the script | **not set** | `ENV-CLAUDE_SESSION_ID=[<unset>]` |
+
+The command again ran through the `PowerShell` tool, as in S2.
+
+**Decision:**
+
+- Skills pass `"${CLAUDE_SESSION_ID}"` as an argument, as contracts §4.1 planned. Scripts must not
+  read it from the environment: it isn't set there.
+- The ID in the skill equals the hooks' `session_id`, so `planSession` (written by `task-state.sh`)
+  and the approvals' `session` (written by `approval-capture.sh`) are the same kind of value.
+- `session-recorder.sh` is not needed in v0.
+- Not checked here: that the ID changes after `/clear` inside a skill. S1 already showed that
+  `/clear` gives a new `session_id`, and the substitution is done per skill run.
+
 ## Still to do
 
+- [ ] **S8:** repeat `/dcspike:session` in the desktop app (Code tab).
 - [ ] **S5:** run once the repo is in Azure DevOps.
 - [ ] **S3:** repeat the paste case in the CLI and in the pilot developers' clients.
 - [X] **S2:** add a `doctor.sh` check that `bash` run from PowerShell is Git's, and document the

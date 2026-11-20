@@ -31,6 +31,22 @@ new_task() {
   task_onboarded "$ROOT"
 }
 
+# --- config_get (§1) ---------------------------------------------------------
+
+@test "config_get falls back to the plugin defaults for missing keys" {
+  onboard
+  [ "$(config_get "$ROOT" '.specApprovalPhrase[0]')" = "Specification agreed" ]
+  [ "$(config_get "$ROOT" '.assessment.numQuestions')" = "4" ]
+}
+
+@test "config_get: project values win, objects merge key by key, arrays are replaced" {
+  onboard
+  echo '{"protectedBranches":["trunk"],"assessment":{"numQuestions":6}}' > .harness/config.json
+  [ "$(config_get "$ROOT" '.protectedBranches | join(",")')" = "trunk" ]
+  [ "$(config_get "$ROOT" '.assessment.numQuestions')" = "6" ]
+  [ "$(config_get "$ROOT" '.assessment.passThreshold')" = "0.7" ]
+}
+
 # --- task_folder / task_rel_dir (§2.1) ---------------------------------------
 
 @test "task_folder keeps a plain branch name" {

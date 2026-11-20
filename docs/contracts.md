@@ -35,8 +35,8 @@ The tech lead's settings for one project.
 | `plugins/dc-harness/stacks/<stack>/default.json` | plugin | That stack's default commands |
 | `<project>/.harness/config.json` | project repo (committed) | The project's values |
 
-- **Onboarded** means `.harness/config.json` exists at the repo root. Without it, every hook and
-  `task-state.sh` exits silently.
+- **Onboarded** means `.harness/config.json` exists at the repo root. Without it, every hook
+  exits silently and `task-state.sh` refuses (check G1, §4.3).
 - **Only the tech lead edits `.harness/`.** `harness-guard.sh` blocks the agent from writing it.
 - `onboard-repo.sh` copies the full `defaults/config.json` into `.harness/config.json`, so the
   tech lead sees every key.
@@ -218,7 +218,8 @@ the spec step is re-approved by typing the phrase again, since `gate` is still `
 - The skills pass the current session ID to the script:
   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" <skill> "${CLAUDE_SESSION_ID}"`. Claude Code
   replaces `${CLAUDE_SESSION_ID}` in SKILL.md text, like `${CLAUDE_PLUGIN_ROOT}`.
-  **To confirm** in the spike plugin before Phase 1. If it works, `session-recorder.sh` (the
+  Confirmed in spike S8 (CLI): the ID in the skill equals the hooks' `session_id`. It is **not**
+  set as an environment variable, so it must be passed as an argument. `session-recorder.sh` (the
   `SessionStart` hook) isn't needed in v0.
 - `/dc:plan` stores the ID in `planSession`.
 - `/dc:implement` refuses when the current ID equals `planSession`. Per spike S1: `/clear` gives a

@@ -20,6 +20,18 @@ task_onboarded() {
   [ -f "$1/$CONFIG_FILE" ]
 }
 
+# config_get ROOT FILTER [JQ_ARGS...]: prints FILTER applied to the project's config merged
+# over the plugin defaults (contracts §1: defaults/config.json * .harness/config.json), raw,
+# without `\r`. A key missing from the project falls back to its default.
+#   config_get "$root" '.specApprovalPhrase[0]'
+config_get() {
+  local root=$1 filter=$2 defaults
+  shift 2
+  defaults="$(dirname "${BASH_SOURCE[0]}")/../../defaults/config.json"
+  jq -r -s "$@" ".[0] * .[1] | $filter" "$defaults" "$root/$CONFIG_FILE" | tr -d '\r'
+  return "${PIPESTATUS[0]}"
+}
+
 # task_folder BRANCH: prints the task folder name for a branch (contracts §2.1).
 # `/` is kept, so each part becomes a nested folder; every other character outside
 # A-Z a-z 0-9 . _ - becomes `-`, one per character (feature/añadir login#2 →
