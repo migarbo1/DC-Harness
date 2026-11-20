@@ -31,6 +31,22 @@ config_get() {
   json_get_merged "$defaults" "$root/$CONFIG_FILE" "$filter" "$@"
 }
 
+# stack_command ROOT STACK KEY: prints the command for KEY (lint, types or tests) of STACK
+# (contracts §1.2): the project's stackCommands.<STACK>.<KEY> when present, otherwise
+# stacks/<STACK>/default.json. Prints nothing when the check is skipped (null or "").
+# Fails when the plugin has no stacks/<STACK>/ folder.
+stack_command() {
+  local root=$1 stack=$2 key=$3 defaults
+  defaults="$(dirname "${BASH_SOURCE[0]}")/../../stacks/$stack/default.json"
+  [ -f "$defaults" ] && [ -f "$root/$CONFIG_FILE" ] || return 1
+  # jq's * keeps an explicit null from the project, so an opt-out survives the merge.
+  # shellcheck disable=SC2016
+  cat "$defaults" "$root/$CONFIG_FILE" |
+    _jq -r -s --arg s "$stack" --arg k "$key" \
+      '.[0] * (.[1].stackCommands[$s] // {}) | .[$k] // empty' | tr -d '\r'
+  return "${PIPESTATUS[1]}"
+}
+
 # task_folder BRANCH: prints the task folder name for a branch (contracts §2.1).
 # `/` is kept, so each part becomes a nested folder; every other character outside
 # A-Z a-z 0-9 . _ - becomes `-`, one per character (feature/añadir login#2 →

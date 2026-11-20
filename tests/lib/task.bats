@@ -47,6 +47,24 @@ new_task() {
   [ "$(config_get "$ROOT" '.assessment.passThreshold')" = "0.7" ]
 }
 
+# --- stack_command (§1.2) ----------------------------------------------------
+
+@test "stack_command: defaults, project overrides, and null or empty to skip" {
+  onboard
+  [ "$(stack_command "$ROOT" python types)" = "mypy" ]
+  echo '{"stackCommands": {"python": {"tests": "uv run pytest", "types": null, "lint": ""}}}' \
+    > .harness/config.json
+  [ "$(stack_command "$ROOT" python tests)" = "uv run pytest" ]
+  [ -z "$(stack_command "$ROOT" python types)" ]
+  [ -z "$(stack_command "$ROOT" python lint)" ]
+}
+
+@test "stack_command fails for a stack the plugin doesn't have" {
+  onboard
+  run stack_command "$ROOT" cobol lint
+  [ "$status" -ne 0 ]
+}
+
 # --- task_folder / task_rel_dir (§2.1) ---------------------------------------
 
 @test "task_folder keeps a plain branch name" {

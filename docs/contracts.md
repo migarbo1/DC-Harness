@@ -129,6 +129,28 @@ Consequences:
   example `cd backend && pytest`.
 - `full` runs `tests` as written. `affected` appends the chosen test file paths to the end of
   `tests`, so it must be a command that accepts paths (pytest does).
+- Every check runs even when an earlier one fails, so the agent sees all failures at once. A
+  passing check prints one line (`-- python lint passed: <command>`); a failing one prints its
+  whole output between `== python lint FAILED: <command>` and `-- python lint FAILED`. The Stop
+  hook keeps the last 40 lines, so they are about what failed, not a passing pytest report.
+- Exit codes: `0` all passed (or nothing to check), `1` a check failed, `2` can't run (not a git
+  repo, not onboarded, no or unknown stack, bad usage), with a `dc: internal:` line on stderr.
+
+**Python `affected`** (`stacks/python/stack-check.sh`):
+
+- No `.py` file in the list: nothing runs, pass.
+- Otherwise `lint` and `types` run as written, on the whole project (on the dogfood project they
+  take under 4 s together), and `tests` gets the affected test files:
+  - changed test files (`test_*.py`, `*_test.py`) that still exist;
+  - for each other changed module `<folder>/<name>.py`: the test files anywhere in the repo named
+    `test_<x>.py` or `<x>_test.py`, where `<x>` is `<name>`, `<folder>` or `<folder>` without a
+    final `s` (`services/arithmetic.py` → `test_arithmetic.py`, `test_services.py`,
+    `test_service.py`). Untracked test files count; gitignored ones don't.
+- **A changed module with no matching test file runs all tests** (`conftest.py`, `__init__.py`, or
+  a module nobody named a test after). A miss in the heuristic must not let a change through.
+- First measurement on the dogfood project (2026-11-20): `services/arithmetic.py` picked
+  `test_service.py` (13 of 34 tests); `routers/arithmetic.py` matched nothing and ran all 34. A
+  Stop with a change takes 7–8 s there.
 
 ### 1.3 Approval phrases
 
