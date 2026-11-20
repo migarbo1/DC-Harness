@@ -1,0 +1,18 @@
+{
+  "session_id": "43c5a1cc-15c0-4c53-ad7b-da368df4c2f8",
+  "transcript_path": "C:\\Users\\developer\\.claude\\projects\\C--08---AI-Office-nunsys-harness\\43c5a1cc-15c0-4c53-ad7b-da368df4c2f8.jsonl",
+  "cwd": "C:\\08 - AI Office\\nunsys-harness",
+  "scratchpad_dir": "C:\\Users\\DEVELO~1\\AppData\\Local\\Temp\\claude\\a2b74bb2d4e20f98\\43c5a1cc-15c0-4c53-ad7b-da368df4c2f8\\scratchpad",
+  "prompt_id": "b91ea54c-6975-4442-93d9-09f9b4a0ba6c",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "PowerShell",
+  "tool_input": {
+    "command": "bash \"C:/08 - AI Office/nunsys-harness/_spikes/dc-spike/scripts/hello.sh\" \"x\"",
+    "description": "Run hello.sh spike script with arg \"x\""
+  },
+  "tool_use_id": "toolu_01EcziAydzyWQT7QWVoXCP4d"
+}

@@ -33,7 +33,9 @@ internal() {
 # success; the hook then exits 0 (contracts §5.3: hooks say everything through the JSON).
 emit() {
   local event=$1 decision=${2:-allow} reason=${3:-} message=${4:-} context=${5:-} out
-  out=$(jq -cn \
+  # Path conversion off: a reason like "/dc:plan is read-only" must reach jq as typed
+  # (see lib/json.sh).
+  out=$(MSYS_NO_PATHCONV=1 jq -cn \
     --arg event "$event" --arg decision "$decision" --arg reason "$reason" \
     --arg message "$message" --arg context "$context" '
     def block: $decision == "block" and $reason != "";

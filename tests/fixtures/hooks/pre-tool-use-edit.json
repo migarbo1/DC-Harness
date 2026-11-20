@@ -1,0 +1,20 @@
+{
+  "session_id": "38de5542-2f08-4a57-a8cf-726d4523218b",
+  "transcript_path": "C:\\Users\\developer\\.claude\\projects\\C--Users-developer-AppData-Local-Temp-claude-a2b74bb2d4e20f98-9ac182c4-66c9-48b1-b37e-8c0798ae79b2-scratchpad-filetools\\38de5542-2f08-4a57-a8cf-726d4523218b.jsonl",
+  "cwd": "C:\\Users\\developer\\AppData\\Local\\Temp\\claude\\a2b74bb2d4e20f98\\9ac182c4-66c9-48b1-b37e-8c0798ae79b2\\scratchpad\\filetools",
+  "scratchpad_dir": "C:\\Users\\DEVELO~1\\AppData\\Local\\Temp\\claude\\c009fbba98b2e33e\\38de5542-2f08-4a57-a8cf-726d4523218b\\scratchpad",
+  "prompt_id": "14e6388b-0800-4d84-b223-733501789626",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "C:\\Users\\developer\\AppData\\Local\\Temp\\claude\\a2b74bb2d4e20f98\\9ac182c4-66c9-48b1-b37e-8c0798ae79b2\\scratchpad\\filetools\\sub\\notes.md",
+    "old_string": "one",
+    "new_string": "two",
+    "replace_all": false
+  },
+  "tool_use_id": "toolu_014viNSA8n8Y3a5MMiFMHeSe"
+}

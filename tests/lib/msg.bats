@@ -89,6 +89,11 @@ jqo() {
   [[ "$output" != *$'\r'* ]]
 }
 
+@test "emit keeps a reason that starts with / (Git Bash path conversion)" {
+  run emit PreToolUse block "/dc:plan is read-only: write only spec.md or plan.md." "" ""
+  [ "$(jqo "$output" .hookSpecificOutput.permissionDecisionReason)" = "/dc:plan is read-only: write only spec.md or plan.md." ]
+}
+
 @test "emit keeps quotes, newlines and accents in the text" {
   reason=$'Checks failed:\nE501 "line too long" in señor.py'
   run emit Stop block "$reason" "" ""

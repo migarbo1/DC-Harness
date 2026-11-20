@@ -21,6 +21,10 @@ General rules for every JSON file below:
   back from jq; pass text into jq with `--arg`, `--rawfile` or stdin, never through an environment
   variable. `json_update` strips the `\r` that jq writes on Windows, so the files have LF line
   endings on every platform.
+- **Git Bash rewrites arguments that start with `/`** before a native program like `jq.exe` sees
+  them (`--arg p /help` arrives as `C:/Program Files/Git/help`). `lib/json.sh` and `emit` run jq
+  with `MSYS_NO_PATHCONV=1` and pass files through stdin, never as path arguments (found in
+  Phase 1).
 - Times are ISO 8601 in UTC (`date -u +%FT%TZ`), for example `2026-11-19T10:15:00Z`.
 
 ## 1. `config.json`
@@ -303,8 +307,8 @@ An assessment entry: `at`, `session` and `text` (the prompt, word for word).
 
 | `gate` | Hook does |
 | --- | --- |
-| `"spec"` / `"plan"` | Ignore the prompt if it's wrapped in `<pasted_content>`. Otherwise compare it with `specApprovalPhrase` / `planApprovalPhrase` (§1.3). On a match, with `spec.md` / `plan.md` present: hash the file with `sha256sum`, replace `spec` / `plan`, and return a `context` for the agent: "Spec approval recorded. Tell the developer to run `/dc:plan`. Do nothing else." (for the plan: "… to run `/clear`, then `/dc:implement`"). If the prompt contains a phrase but doesn't equal it, record nothing and return a `message`: "Not recorded as approval: type the phrase on its own." If the file is missing, record nothing |
-| `"assessment"` | Skip prompts starting with `/`. Remove any `<pasted_content …>` tags, keeping the text inside (answers may be pasted, spike S3). Append `{at, session, text}` to `assessment`. Every typed prompt counts, side remarks included: the list is a transcript of the developer's input, not a graded answer sheet |
+| `"spec"` / `"plan"` | Ignore the prompt if it contains `<pasted_content` anywhere. Otherwise compare it with `specApprovalPhrase` / `planApprovalPhrase` (§1.3). On a match, with `spec.md` / `plan.md` present: hash the file with `sha256sum`, replace `spec` / `plan`, and return a `context` for the agent: "Spec approval recorded. Tell the developer to run `/dc:plan`. Do nothing else." (for the plan: "… to run `/clear`, then `/dc:implement`"). If the prompt contains a phrase but doesn't equal it, record nothing and return a `message`: "Not recorded as approval: type the phrase on its own." If the file is missing, record nothing |
+| `"assessment"` | Skip prompts starting with `/`. Remove any `<pasted_content …>` tags, keeping the text inside (answers may be pasted, spike S3). Both tags carry the id: `<pasted_content id="5405">` … `</pasted_content id="5405">`. The text is trimmed. Append `{at, session, text}` to `assessment`. Every typed prompt counts, side remarks included: the list is a transcript of the developer's input, not a graded answer sheet |
 | `null` | Nothing |
 
 The `/dc:assessment` prompt fires the hook **before** the skill runs `task-state.sh`, so `gate`
@@ -538,23 +542,34 @@ so `spec.md` and `plan.md` can be written but the code can't.
 | Shell tools | The command mentions a protected file and isn't read-only | "DC-Harness files are written only by the harness." |
 | Shell tools | `step` is `start-task` or `plan` and the command isn't read-only | "`/dc:<step>` is read-only: only reading commands are allowed." |
 
-`file_path` is normalised before comparing: backslashes become `/`, relative paths are resolved from
-the project root, and drive-letter case is ignored.
+`file_path` (`notebook_path` for `NotebookEdit`) is normalised before comparing: backslashes become
+`/`, relative paths are resolved from the project root, `.` and `..` are resolved, Windows 8.3
+short names are expanded, and the whole comparison ignores case (Windows paths are
+case-insensitive, so `.HARNESS/` is still protected). A path **outside the repo** is allowed at
+every step: it is the agent's own scratch or memory, not the project's code.
 
 **Read-only command** (an allow-list, so anything unknown is blocked):
 
 1. Calls to `${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh` are always allowed (the skills run it
-   while the step is still the previous one).
-2. Split the command at `;`, `&&`, `||` and `|`.
-3. No output redirection, except to `/dev/null` or `$null` and `2>&1`.
-4. Every piece starts with a known reader:
+   while the step is still the previous one). Only a single call to this plugin's own copy: a
+   chained command or another `task-state.sh` goes through the checks below.
+2. No command or process substitution (`$(…)`, backticks, `<(…)`, `>(…)`): they run other
+   commands inside a reader.
+3. Split the command at `;`, `&&`, `||`, `|`, `&` and newlines.
+4. No output redirection, except to `/dev/null` or `$null` and `2>&1`.
+5. Every piece starts with a known reader:
    - `cat`, `head`, `tail`, `less`, `grep`, `rg`, `find`, `ls`, `wc`, `diff`, `jq`, `echo`, `pwd`
    - `git status`, `git diff`, `git log`, `git show`, `git ls-files`, `git rev-parse`,
      `git branch`
    - PowerShell: `Get-Content`, `type`, `Select-String`, `Get-ChildItem`, `dir`, `Test-Path`,
      `Get-Item`, `Get-Location`
+6. Readers that can write are refused with those options: `find` with `-exec`, `-execdir`, `-ok`,
+   `-okdir`, `-delete` or `-fprint*`/`-fls`; `git branch` with a branch name or a flag that
+   changes a branch (`-d`, `-D`, `-m`, `-c`, `-f`, `-u`, …); any `--output` (`git diff --output=`).
 
-The list grows during dogfooding when a harmless reader gets blocked.
+The list grows during dogfooding when a harmless reader gets blocked. Quotes aren't parsed, so a
+`;`, `|` or `>` inside a quoted argument (`grep "a|b"`) splits or blocks the command: safe, but a
+false refusal to fix if it shows up in dogfooding.
 
 Not in v0: blocking `git commit` / `git push` while a task is open (v1 bash guard). Until then it is
 an `AGENTS.md` rule.
@@ -571,7 +586,11 @@ checked.
    out automatically.
 2. The hash equals `lastPassedTree` in `stop-check.json`: nothing changed, allow the stop.
 3. Otherwise run `stack-check.sh affected` with the changed files:
-   `git diff --name-only <lastPassedTree> <new tree>`.
+   `git diff --name-only <lastPassedTree> <new tree>`. The call is
+   `bash "<plugin>/scripts/stack-check.sh" affected <file>...`, from the repo root, with paths
+   relative to it (new, modified and deleted files). Exit 0 is a pass; anything else is a
+   failure, and its stdout and stderr are the output. If `stack-check.sh` is missing, the hook
+   fails open (§5.3).
 4. Pass: store the new hash as `lastPassedTree`, allow the stop. Fail: `block`, with `reason` =
    "Checks failed. Fix them before finishing:" plus the last ~40 lines of the output.
 

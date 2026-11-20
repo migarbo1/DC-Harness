@@ -8,18 +8,27 @@
 #     variable (env.X corrupts non-ASCII text).
 #   - Files are written with LF endings, through a temp file, so a failed write leaves the
 #     old file untouched.
+# And one found in Phase 1: Git Bash rewrites arguments that start with `/` before a native
+# program like jq.exe sees them (`--arg p /help` arrives as `C:/Program Files/Git/help`).
+# So jq always runs with path conversion off (_jq), and files reach it through stdin, never
+# as a path argument.
 #
 # jq prints `null` for a missing key. Write the filter as `.key // empty` to get "" instead.
+
+# _jq ARGS...: jq with Git Bash's argument path conversion turned off. Harmless elsewhere.
+_jq() {
+  MSYS_NO_PATHCONV=1 jq "$@"
+}
 
 # json_get FILE FILTER [JQ_ARGS...]: prints FILTER applied to FILE, raw (-r), without `\r`.
 # Fails when FILE is missing or not JSON.
 #   json_get "$dir/state.json" '.branch'
-#   json_get "$cfg" '.specApprovalPhrase[] | select(ascii_downcase == ($p | ascii_downcase))' --arg p "$prompt"
+#   json_get "$dir/approvals.json" '.spec.sha256 // empty'
 json_get() {
   local file=$1 filter=$2
   shift 2
   [ -f "$file" ] || return 1
-  jq -r "$@" "$filter" "$file" | tr -d '\r'
+  _jq -r "$@" "$filter" < "$file" | tr -d '\r'
   return "${PIPESTATUS[0]}"
 }
 
@@ -29,7 +38,17 @@ json_get() {
 json_get_text() {
   local text=$1 filter=$2
   shift 2
-  printf '%s' "$text" | jq -r "$@" "$filter" | tr -d '\r'
+  printf '%s' "$text" | _jq -r "$@" "$filter" | tr -d '\r'
+  return "${PIPESTATUS[1]}"
+}
+
+# json_get_merged FILE1 FILE2 FILTER [JQ_ARGS...]: like json_get, on FILE1 * FILE2 (jq deep
+# merge: objects merge key by key, FILE2 wins). For config: defaults * project.
+json_get_merged() {
+  local first=$1 second=$2 filter=$3
+  shift 3
+  [ -f "$first" ] && [ -f "$second" ] || return 1
+  cat "$first" "$second" | _jq -r -s "$@" ".[0] * .[1] | $filter" | tr -d '\r'
   return "${PIPESTATUS[1]}"
 }
 
@@ -44,9 +63,9 @@ json_update() {
 
   # tr: LF endings on every platform, so the files read the same everywhere and in fixtures.
   if [ -f "$file" ]; then
-    jq "$@" "$filter" "$file"
+    _jq "$@" "$filter" < "$file"
   else
-    jq -n "$@" "$filter"
+    _jq -n "$@" "$filter"
   fi | tr -d '\r' > "$tmp"
 
   if [ "${PIPESTATUS[0]}" -ne 0 ] || ! mv -f "$tmp" "$file"; then

@@ -25,53 +25,6 @@ ts() {
   run --separate-stderr bash "$TS" "$@"
 }
 
-# hash FILE: SHA-256 of FILE's bytes.
-hash() {
-  sha256sum < "$1" | cut -d' ' -f1
-}
-
-# stage NAME: builds the task folder of feature/x up to NAME, as the skills and hooks would
-# leave it. Each stage includes the ones before it.
-#   started → spec → spec-approved → planned → plan-approved → cp1 → cp2 → assessed → finished
-stage() {
-  local target=$1 s
-  for s in started spec spec-approved planned plan-approved cp1 cp2 assessed finished; do
-    case "$s" in
-      started)
-        mkdir -p "$T"
-        jq -n --arg c "$(git rev-parse HEAD)" '{schemaVersion: 1, branch: "feature/x",
-          commitRef: $c, startedAt: "2026-11-20T10:00:00Z", step: "start-task", gate: "spec",
-          planSession: null}' > "$T/state.json" ;;
-      spec)
-        printf '# Spec\n' > "$T/spec.md" ;;
-      spec-approved)
-        jq -n --arg h "$(hash "$T/spec.md")" '{schemaVersion: 1, spec: {sha256: $h}}' \
-          > "$T/approvals.json" ;;
-      planned)
-        printf '# Plan\n\n## CP1: First\n### Tasks\n\n## CP2: Second\n' > "$T/plan.md"
-        jq '.step = "plan" | .gate = "plan" | .planSession = "sess-plan"' "$T/state.json" \
-          > "$T/s" && mv "$T/s" "$T/state.json" ;;
-      plan-approved)
-        jq --arg h "$(hash "$T/plan.md")" '.plan = {sha256: $h}' "$T/approvals.json" \
-          > "$T/a" && mv "$T/a" "$T/approvals.json" ;;
-      cp1)
-        printf '## CP1: First\n### Changes\n' > "$T/implementation-notes.md" ;;
-      cp2)
-        printf '\n## CP2: Second\n' >> "$T/implementation-notes.md" ;;
-      assessed)
-        printf '# Assessment\n\nScore: 3/4 (passed)\n' > "$T/assessment.md" ;;
-      finished)
-        printf 'PR text\n' > "$T/pr-text.md" ;;
-    esac
-    [ "$s" = "$target" ] && return 0
-  done
-}
-
-# state KEY: a value from feature/x's state.json.
-state() {
-  jq -r ".$1" "$T/state.json" | tr -d '\r'
-}
-
 # --- Arguments and internal errors (exit 2) ----------------------------------
 
 @test "internal: missing or unknown skill" {

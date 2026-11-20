@@ -28,8 +28,7 @@ config_get() {
   local root=$1 filter=$2 defaults
   shift 2
   defaults="$(dirname "${BASH_SOURCE[0]}")/../../defaults/config.json"
-  jq -r -s "$@" ".[0] * .[1] | $filter" "$defaults" "$root/$CONFIG_FILE" | tr -d '\r'
-  return "${PIPESTATUS[0]}"
+  json_get_merged "$defaults" "$root/$CONFIG_FILE" "$filter" "$@"
 }
 
 # task_folder BRANCH: prints the task folder name for a branch (contracts §2.1).

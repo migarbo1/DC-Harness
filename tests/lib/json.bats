@@ -43,6 +43,25 @@ setup() {
   [ "$output" = "Especificación acordada" ]
 }
 
+@test "json_get passes --arg values that start with / unchanged (Git Bash path conversion)" {
+  printf '{}' > f.json
+  run json_get f.json '$x' --arg x "/help"
+  [ "$output" = "/help" ]
+  run json_get_text '{}' '$x' --arg x "/usr/local is where it lives"
+  [ "$output" = "/usr/local is where it lives" ]
+}
+
+@test "json_update stores --arg values that start with / unchanged" {
+  json_update s.json '{t: $t}' --arg t "/dc:plan"
+  [ "$(json_get s.json .t)" = "/dc:plan" ]
+}
+
+@test "json_get_merged: the second file wins, objects merge key by key" {
+  printf '{"a":1,"o":{"x":1,"y":1},"l":[1,2]}' > d.json
+  printf '{"o":{"y":2},"l":[3]}' > p.json
+  [ "$(json_get_merged d.json p.json '[.a, .o.x, .o.y, (.l | length)] | join(",")')" = "1,1,2,1" ]
+}
+
 @test "json_get: '// empty' turns a missing key into an empty string" {
   printf '{}' > f.json
   run json_get f.json '.planSession // empty'

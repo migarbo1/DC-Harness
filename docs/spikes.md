@@ -212,5 +212,7 @@ The command again ran through the `PowerShell` tool, as in S2.
       PATH requirement in `docs/onboarding.md`.
 - [ ] **S6:** test BOM input with jq 1.7, or raise the minimum to 1.8.
 - [ ] **Client:** confirm which client the payloads were recorded in.
-- [ ] **Fixtures:** copy the payloads quoted above into `tests/fixtures/hooks/`. Replace the user
-      name in `transcript_path`, `cwd` and `scratchpad_dir` first: `tests/` is committed.
+- [X] **Fixtures:** copied into `tests/fixtures/hooks/` with the user name replaced: the
+      accented and pasted `UserPromptSubmit` prompts, a PowerShell `PreToolUse`, a `Stop`, and a
+      `Write` and an `Edit` `PreToolUse` recorded on 2026-11-20 (`file_path` arrives as an
+      absolute Windows path with backslashes).

@@ -1,0 +1,16 @@
+{
+  "session_id": "dedcabc0-0479-4c0f-816a-3223603cf109",
+  "transcript_path": "C:\\Users\\developer\\.claude\\projects\\C--08---AI-Office-nunsys-harness\\dedcabc0-0479-4c0f-816a-3223603cf109.jsonl",
+  "cwd": "C:\\08 - AI Office\\nunsys-harness",
+  "scratchpad_dir": "C:\\Users\\DEVELO~1\\AppData\\Local\\Temp\\claude\\a2b74bb2d4e20f98\\dedcabc0-0479-4c0f-816a-3223603cf109\\scratchpad",
+  "prompt_id": "d814b975-b997-4479-91a0-b665dfa8cdb6",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "The `dcspike:hello` skill ran without errors. Output:\n\n```\nhello.sh ran from: C:/08 - AI Office/nunsys-harness/_spikes/dc-spike/scripts/hello.sh\narguments: \n```\n\nThe skill launched `hello.sh` from the plugin's `scripts/` folder. The `arguments:` line is empty because the skill passed an empty string.",
+  "background_tasks": [],
+  "session_crons": []
+}
