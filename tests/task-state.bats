@@ -122,12 +122,22 @@ ts() {
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "task-dir=.tasks/feature/x" ]
   [ "${lines[1]}" = "commit-ref=$(git rev-parse HEAD)" ]
+  [ "${lines[2]}" = "approval-phrase=Specification agreed" ]
   [ "$(state branch)" = "feature/x" ]
   [ "$(state commitRef)" = "$(git rev-parse HEAD)" ]
   [ "$(state step)" = "start-task" ]
   [ "$(state gate)" = "spec" ]
   [ "$(state planSession)" = "null" ]
   [[ "$(state startedAt)" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
+}
+
+@test "start-task: approval-phrase is the project's first specApprovalPhrase" {
+  echo '{ "schemaVersion": 1, "specApprovalPhrase": ["Especificación acordada", "ok spec"] }' \
+    > .harness/config.json
+  git commit --quiet -am "custom phrase"
+  ts start-task sess
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "approval-phrase=Especificación acordada" ]
 }
 
 @test "start-task: a branch name with special characters gets a safe folder" {

@@ -10,7 +10,8 @@
 # that fails. When every check passes it writes state.json, the only script that does.
 #
 # Exit codes and output (contracts §4.2):
-#   0  allowed: key=value lines on stdout (task-dir=, plus commit-ref=, checkpoint=, questions=)
+#   0  allowed: key=value lines on stdout (task-dir=, plus commit-ref=, approval-phrase=,
+#      checkpoint=, questions=)
 #   1  refused: one line on stdout; the skill prints it exactly and stops
 #   2  can't run: one line on stderr starting with "dc: internal:"
 
@@ -319,6 +320,7 @@ echo "task-dir=$(task_rel_dir "$BRANCH")"
 case "$SKILL" in
   start-task)
     echo "commit-ref=$commit_ref"
+    echo "approval-phrase=$(spec_phrase)"
     ;;
   implement)
     echo "checkpoint=$NEXT_CP"

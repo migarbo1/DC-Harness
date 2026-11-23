@@ -13,6 +13,7 @@ it. How to run them is in `check-spikes.md`.
 | S6 | Does `jq` on Windows handle line endings and non-English characters? | **Pass, with rules** | Strip `\r`; pass text with `--arg` or stdin, never through the environment |
 | S7 | Do `/dc:` commands run, and does `${CLAUDE_PLUGIN_ROOT}` work with spaces? | **Pass** | Call scripts through `${CLAUDE_PLUGIN_ROOT}` as planned; `bin/` stays as fallback |
 | S8 | Is `${CLAUDE_SESSION_ID}` replaced in SKILL.md text (contracts §2.5)? | **Pass** (CLI) | Skills pass it as an argument to `task-state.sh`; no `session-recorder.sh` in v0 |
+| S9 | Can a skill run its script and read its template without permission prompts? | **Pass, with rules** | Pre-approve them in `allowed-tools` with exact `${CLAUDE_PLUGIN_ROOT}` paths, for both `Bash` and `PowerShell` |
 
 ## Test environment
 
@@ -202,6 +203,36 @@ The command again ran through the `PowerShell` tool, as in S2.
 - `session-recorder.sh` is not needed in v0.
 - Not checked here: that the ID changes after `/clear` inside a skill. S1 already showed that
   `/clear` gives a new `session_id`, and the substitution is done per skill run.
+
+## S9: permissions for the skill's own script and template
+
+**What I did** (2026-11-23, Claude Code CLI, `claude -p` in the dogfood sandbox, which can't show
+permission prompts): ran `/dc:start-task` with different `allowed-tools` in its frontmatter.
+
+**Result:**
+
+- Without `allowed-tools`, the `task-state.sh` call waits for a prompt (denied in `-p`). The skill
+  stopped correctly instead of carrying on.
+- The agent runs the call through the **PowerShell** tool on Windows, so a `Bash(...)` rule alone
+  doesn't match it.
+- A `*` before the script path (`Bash(bash *task-state.sh *)`) is rejected by Claude Code: a
+  wildcard before the rest of the command could approve inserted options.
+- `${CLAUDE_PLUGIN_ROOT}` **is** replaced inside `allowed-tools`, so exact rules work:
+  `PowerShell(bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" start-task *)`.
+- Plugin files are outside the project, so reading `templates/spec.md` prompts too.
+  `Read(${CLAUDE_PLUGIN_ROOT}/templates/**)` works on Windows (`C:/…`); the `//C:/…` form
+  does not. Reading the skill's own folder isn't free either.
+- A `!`-command (load-time injection) of the template is blocked: on Windows it runs through
+  PowerShell, which may only touch the working directories.
+- In a later turn (`claude -p --continue`), `Write(.tasks/**/spec.md)` in `allowed-tools` did not
+  approve the `spec.md` write, while `--allowedTools "Write(.tasks/**)"` on the command line did.
+  Not settled whether skill rules cover only the invoking turn or the pattern was wrong; either
+  way the spec is written after the interview, so the developer approves that write.
+
+**Decision:** every skill pre-approves its own `task-state.sh` call (Bash and PowerShell) and its
+template read, with exact `${CLAUDE_PLUGIN_ROOT}` paths, and reads its template in the turn it
+is invoked. Artefact writes are left to the normal permission prompt. Not checked: macOS/Linux,
+where `${CLAUDE_PLUGIN_ROOT}` starts with `/` and a `Read` rule may need the `//` prefix.
 
 ## Still to do
 

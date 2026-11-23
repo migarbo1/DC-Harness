@@ -390,7 +390,7 @@ Success output, for the skill to use instead of working these out again:
 | Skill | Prints |
 | --- | --- |
 | all | `task-dir=.tasks/<folder>` |
-| `start-task` | `commit-ref=<sha>` |
+| `start-task` | `commit-ref=<sha>`, `approval-phrase=<first specApprovalPhrase>` (for the closing message) |
 | `implement` | `checkpoint=CP<n>`: the first one not done |
 | `assessment` | `commit-ref=<sha>`, `questions=<assessment.numQuestions>` |
 
