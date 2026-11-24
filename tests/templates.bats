@@ -33,3 +33,25 @@ setup() {
   run grep -n -- '- \[ \]' "$TEMPLATES/plan.md"
   [ "$status" -eq 1 ]
 }
+
+@test "implementation-notes.md: an entry copied from the template marks CP1 done, CP2 is next" {
+  stage plan-approved
+  cp "$TEMPLATES/implementation-notes.md" "$T/implementation-notes.md"
+  run --separate-stderr bash "$TS" implement sess-new
+  [ "$status" -eq 0 ]
+  [ "${lines[1]}" = "checkpoint=CP2" ]
+}
+
+@test "implementation-notes.md: no line starts with '## CP' except the entry heading" {
+  run grep -c '^## CP' "$TEMPLATES/implementation-notes.md"
+  [ "$output" -eq 1 ]
+  grep -qE '^## CP1: .+$' "$TEMPLATES/implementation-notes.md"
+}
+
+@test "implement skill: calls task-state.sh implement and stack-check.sh full as allowed" {
+  local skill="$REPO_ROOT/plugins/dc-harness/skills/implement/SKILL.md"
+  grep -qF 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" implement "${CLAUDE_SESSION_ID}"' "$skill"
+  grep -qF 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/stack-check.sh" full' "$skill"
+  grep -qF 'Bash(bash "${CLAUDE_PLUGIN_ROOT}/scripts/stack-check.sh" full)' "$skill"
+  grep -qF 'disable-model-invocation: true' "$skill"
+}

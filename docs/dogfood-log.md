@@ -50,3 +50,28 @@ Phase 2 needs at least two real tasks per skill, and five end-to-end tasks befor
     the skills leave artefact writes to the normal prompt (S9).
 - **Still to do:** two real interactive tasks in the desktop app, after a real `/dc:start-task`:
   review edits, "looks good" handling, a blocking question, and a re-plan after CP1 is done.
+
+## 2026-11-24 · `/dc:implement` · smoke test (headless, not a real task)
+
+- **How:** a task on a throwaway branch: `task-state.sh start-task`, a hand-written spec ("add
+  `pow` and `mod`", 2 requirements, 2 success criteria) and a hand-written 2-checkpoint plan, both
+  approved by piping the phrases into `approval-capture.sh` with a fake planning session. Then
+  `claude -p "/dc:implement"` through `dev-claude.sh`, with `--permission-mode acceptEdits` and the
+  venv's python and `git status`/`git diff` allowed, standing in for the developer's clicks.
+- **Flow:** CP1 ~2 m 20 s, CP2 ~1 m 55 s (one run each, gatekeeper → reads → tests first → code →
+  `stack-check.sh full` → notes entry → closing message). The Stop hook wrote `stop-check.json`.
+  `/dc:implement CP1` after CP1 → the I7 refusal printed exactly; `/dc:implement the next one` →
+  usage, nothing run. After CP2 the closing message pointed to `/dc:assessment`.
+- **Quality:** each run built only its checkpoint (5 files, ~20 lines), nothing committed, notes
+  with every changed file, two small decisions with reasons (a mypy `no-any-return` on `a ** b`
+  fixed with a typed local, not `type: ignore`), deviations "None.", acceptance criteria mapped to
+  named tests.
+- **Friction and fixes:**
+  - First run: the agent appended `; "exit=$LASTEXITCODE"` to the gatekeeper call in PowerShell.
+    The step was still `plan` (read-only), the guard saw a chained command and blocked it, so the
+    run stopped before doing anything (correctly, without working around the hook). All three
+    skills now say to append nothing and to read the result from the output (`task-state.sh`'s
+    output already tells the three exits apart).
+- **Still to do:** two real interactive tasks in the desktop app: a deviation question and its
+  answer, a failing Stop check fixed across turns, changes asked after a checkpoint, and an
+  interrupted run picked up again.

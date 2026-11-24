@@ -22,3 +22,20 @@
   Verification). No checkboxes: the plan is approved by its hash.
 - `task-state.sh plan` prints `approval-phrase=<first planApprovalPhrase>` (contracts §4.2).
 - `tests/templates.bats`: a plan copied from the template passes check I5.
+- `/dc:implement` skill (`skills/implement/SKILL.md`): argument check (`CP<n>`, `cp<n>`, `<n>` or
+  nothing), the `task-state.sh` gatekeeper, reading the plan, spec and earlier notes in a fresh
+  session, picking up an interrupted run, the implement → test → verify cycle per task with the
+  scope-discipline rules (no commits), "every test must pass" without weakening checks, a fixed
+  format for asking before deviating from the plan, the acceptance criteria and
+  `stack-check.sh full` before the notes entry, and a closing message naming the next checkpoint
+  or `/dc:assessment`. Builds exactly one checkpoint per run.
+- `templates/implementation-notes.md`: one `## CP<n>: <title>` entry per checkpoint with Changes,
+  Decisions, Deviations from the plan, Verification, and Noticed, not touched.
+- `tests/templates.bats`: a notes entry copied from the template marks its checkpoint done; the
+  implement skill calls the gatekeeper and the full stack check as allowed tools.
+
+### Fixed
+
+- `/dc:start-task`, `/dc:plan`, `/dc:implement`: the gatekeeper call must run with nothing
+  appended (no `; echo $?` or `$LASTEXITCODE`). A chained command is blocked by `harness-guard.sh`
+  while the step is read-only; the result is read from the script's output instead.

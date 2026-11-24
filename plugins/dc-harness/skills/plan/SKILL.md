@@ -24,8 +24,7 @@ Before reading or searching anything, run exactly this command, on its own:
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" plan "${CLAUDE_SESSION_ID}"
 ```
 
-Append nothing to it (no `; echo $?`, no `$LASTEXITCODE`, no pipe): the harness allows it only
-on its own. Tell the result from the output:
+Append nothing to it (no `; echo $?`, no `$LASTEXITCODE`, no pipe): the harness allows it only on its own. Tell the result from the output:
 
 - Exit `1`: print its one line exactly, and stop.
 - Exit `2`: print its `dc: internal:` line exactly, and stop.
