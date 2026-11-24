@@ -55,3 +55,31 @@ setup() {
   grep -qF 'Bash(bash "${CLAUDE_PLUGIN_ROOT}/scripts/stack-check.sh" full)' "$skill"
   grep -qF 'disable-model-invocation: true' "$skill"
 }
+
+@test "assessment.md: the template's score placeholder doesn't finish the assessment" {
+  stage cp2
+  cp "$TEMPLATES/assessment.md" "$T/assessment.md"
+  run --separate-stderr bash "$TS" pr-text sess
+  [ "$status" -eq 1 ]
+  [ "$output" = "Assessment not finished. Run /dc:assessment." ]
+}
+
+@test "assessment.md: the template's score line, filled in, finishes the assessment" {
+  stage cp2
+  sed -E 's|^Score: .*$|Score: 3/4 (passed)|' "$TEMPLATES/assessment.md" > "$T/assessment.md"
+  run --separate-stderr bash "$TS" pr-text sess
+  [ "$status" -eq 0 ]
+}
+
+@test "assessment.md: exactly one line starts with 'Score:'" {
+  run grep -c '^Score:' "$TEMPLATES/assessment.md"
+  [ "$output" -eq 1 ]
+}
+
+@test "assessment skill: calls task-state.sh assessment as allowed, and can't be started by the model" {
+  local skill="$REPO_ROOT/plugins/dc-harness/skills/assessment/SKILL.md"
+  grep -qF 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" assessment "${CLAUDE_SESSION_ID}"' "$skill"
+  grep -qF 'Bash(bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" assessment *)' "$skill"
+  grep -qF 'disable-model-invocation: true' "$skill"
+  grep -qF '.assessment-key.md' "$skill"
+}

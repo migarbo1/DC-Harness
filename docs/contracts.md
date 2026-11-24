@@ -393,7 +393,7 @@ Success output, for the skill to use instead of working these out again:
 | `start-task` | `commit-ref=<sha>`, `approval-phrase=<first specApprovalPhrase>` (for the closing message) |
 | `plan` | `approval-phrase=<first planApprovalPhrase>` (for the closing message) |
 | `implement` | `checkpoint=CP<n>`: the first one not done |
-| `assessment` | `commit-ref=<sha>`, `questions=<assessment.numQuestions>` |
+| `assessment` | `commit-ref=<sha>`, `questions=<assessment.numQuestions>`, `pass-threshold=<assessment.passThreshold>`, `max-retries=<assessment.maxRetriesPerQuestion>` |
 
 Every refusal ends with the next action and names commands in the full `/dc:` form.
 

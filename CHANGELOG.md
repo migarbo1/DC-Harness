@@ -33,6 +33,10 @@
   Decisions, Deviations from the plan, Verification, and Noticed, not touched.
 - `tests/templates.bats`: a notes entry copied from the template marks its checkpoint done; the
   implement skill calls the gatekeeper and the full stack check as allowed tools.
+- `/dc:assessment` skill (`skills/assessment/SKILL.md`): the `task-state.sh` gatekeeper, reading the diff from the commit-ref plus untracked files and the notes, `assessment.numQuestions` reasoning questions (why, what breaks, edge case, data flow, test, alternative) with their expected answers written to `.assessment-key.md` before the first question, one question per turn, grading the *why*, a follow-up before correcting (partial: follow-up; wrong: rephrase, hint and a related question; "not sure": explanation and a related question) within `assessment.maxRetriesPerQuestion`, the developer's answers copied word for word from `approvals.json`, and the score line against `assessment.passThreshold`. The key is copied into `assessment.md` and deleted at the end. Ends with a closing message pointing to `/dc:pr-text`.
+- `templates/assessment.md`: header, Sources, one block per question (Exchange with quoted answers and grades, Expected answer, Result), and the final Result with the `Score:` line.
+- `task-state.sh assessment` also prints `pass-threshold=` and `max-retries=` (contracts §4.2), so the skill doesn't read the config itself.
+- `tests/templates.bats`: the template's score placeholder doesn't finish the assessment, the filled-in line does; the assessment skill calls the gatekeeper as an allowed tool.
 
 ### Fixed
 

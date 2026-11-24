@@ -376,14 +376,16 @@ approve_plan() {
 
 # --- assessment ----------------------------------------------------------------
 
-@test "assessment: opens the assessment gate, prints commit-ref and questions" {
+@test "assessment: opens the assessment gate, prints commit-ref, questions, threshold and retries" {
   stage cp2
-  echo '{"assessment": {"numQuestions": 6}}' > .harness/config.json
+  echo '{"assessment": {"numQuestions": 6, "passThreshold": 0.5}}' > .harness/config.json
   ts assessment sess
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "task-dir=.tasks/feature/x" ]
   [ "${lines[1]}" = "commit-ref=$(state commitRef)" ]
   [ "${lines[2]}" = "questions=6" ]
+  [ "${lines[3]}" = "pass-threshold=0.5" ]
+  [ "${lines[4]}" = "max-retries=2" ]
   [ "$(state step)" = "assessment" ]
   [ "$(state gate)" = "assessment" ]
 }

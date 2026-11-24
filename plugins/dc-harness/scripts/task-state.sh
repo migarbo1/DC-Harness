@@ -331,6 +331,8 @@ case "$SKILL" in
   assessment)
     echo "commit-ref=$(json_get "$TASK_DIR/state.json" '.commitRef')"
     echo "questions=$(config_get "$ROOT" '.assessment.numQuestions')"
+    echo "pass-threshold=$(config_get "$ROOT" '.assessment.passThreshold')"
+    echo "max-retries=$(config_get "$ROOT" '.assessment.maxRetriesPerQuestion')"
     ;;
 esac
 exit 0
