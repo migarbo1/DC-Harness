@@ -54,7 +54,7 @@ The tech lead's settings for one project.
 | Key | Type | Default | Read by | Meaning |
 | --- | --- | --- | --- | --- |
 | `schemaVersion` | integer | `1` | — | Format version. Not checked |
-| `stack` | string[] | `["python"]` | `stop-check.sh`, `/dc:implement` | The stacks in this repo, in the order their checks run. Each name is a folder in `stacks/` |
+| `stack` | string[] | `["python"]` | `stop-check.sh`, `/dc:implement` | The stacks in this repo, in the order their checks run. Each name is a folder in `stacks/`: `python`, `angular`, `java` (§1.2) |
 | `stackCommands` | object | `{}` | `stack-check.sh` | Per-stack command overrides, keyed by stack name (§1.2) |
 | `protectedBranches` | string[] | `["main", "master", "develop"]` | `task-state.sh start-task` | `/dc:start-task` refuses on these branches. Entries are bash glob patterns, so `release/*` works |
 | `specApprovalPhrase` | string[] | `["Specification agreed"]` | `approval-capture.sh` | Any one of these approves `spec.md` (§1.3) |
@@ -79,12 +79,36 @@ The tech lead's settings for one project.
 
 ### 1.2 Stack commands
 
-Each stack has three commands: `lint`, `types` and `tests`. Its defaults live in
-`stacks/<stack>/default.json`:
+Each stack has three commands, `lint`, `types` and `tests`, and an optional folder, `dir`. Its defaults live in `stacks/<stack>/default.json`. The plugin ships three stacks:
+
+| Stack | For | `lint` | `types` | `tests` |
+| --- | --- | --- | --- | --- |
+| `python` | Python | `ruff check . && ruff format --check .` | `mypy` | `pytest` |
+| `angular` | Angular 21–22, TypeScript | `npx eslint .` (ESLint 9, flat config) | `npx tsc --noEmit -p tsconfig.app.json && npx tsc --noEmit -p tsconfig.spec.json` | `npx ng test --watch=false` (Vitest, the default runner of new Angular projects) |
+| `java` | Spring Boot 2 or 3, Java 17 or 21, Gradle | `null` (none) | `./gradlew testClasses --console=plain -q` (compiles main and test code) | `./gradlew test --console=plain` |
+
+**`dir`**: the stack's folder, relative to the repo root (`"frontend"`, `"backend"`), for a repo that holds more than one stack. The commands run there, only changed files under it count, and test paths are relative to it. Not set: the repo root. A `dir` that doesn't exist fails that stack's check, with `== <stack> FAILED: folder '<dir>' (stackCommands.<stack>.dir) not found`. No default sets it.
 
 ```json
-{ "lint": "ruff check . && ruff format --check .", "types": "mypy", "tests": "pytest" }
+"stack": ["angular", "java"],
+"stackCommands": {
+  "angular": { "dir": "frontend" },
+  "java": { "dir": "backend" }
+}
 ```
+
+**Angular projects on older test runners** override `tests` (the type check needs the spec tsconfig's own types, so `types` usually stays):
+
+| Runner | `tests` |
+| --- | --- |
+| Vitest through `@angular/build:unit-test` (default) | `npx ng test --watch=false` |
+| Karma / Jasmine | `npx ng test --watch=false --browsers=ChromeHeadless` |
+| Jest (`jest.config.*` at the project root) | `npx jest` |
+| Vitest run directly (no Angular builder) | `npx vitest run` |
+
+Without `angular-eslint`'s flat config, `npx eslint .` finds no configuration and fails: set `lint` to `npx ng lint` or `null`. Projects with one tsconfig set `types` to `npx tsc --noEmit -p tsconfig.json`.
+
+**Java projects** override what their build adds or differs: a linter their build already runs (`"lint": "./gradlew checkstyleMain checkstyleTest spotlessCheck --console=plain -q"`), or Maven (`"types": "./mvnw -B -q test-compile"`, `"tests": "./mvnw -B test"`). Tests that need PostgreSQL need it running (or Testcontainers and Docker): every test must pass, so a database that is down blocks the Stop check until the developer interrupts it (§5.5).
 
 The Python defaults are the dogfood project's own checks (Phase 0 step 5). `mypy` has no path, so
 it checks the files listed in the project's `[tool.mypy] files`; a path on the command line would
@@ -125,10 +149,9 @@ Consequences:
 - Stacks run in the order of `stack`. The check fails if any stack fails.
 - Each stack's `stack-check.sh` receives the full list of changed files and picks its own (for
   example `*.py`).
-- Commands run from the repo root. A stack in a subfolder puts the `cd` in the command itself, for
-  example `cd backend && pytest`.
-- `full` runs `tests` as written. `affected` appends the chosen test file paths to the end of
-  `tests`, so it must be a command that accepts paths (pytest does).
+- Commands run from the stack's `dir`, or from the repo root.
+- `full` runs `tests` as written. `affected` adds the chosen tests to the end of `tests`, in the form the stack's runner takes: plain paths for pytest, Jest and Vitest; `--include=<path>` each for `ng test`; `--tests <Class>` each for Gradle; `-Dtest=<Class>,…` for Maven. So `tests` must be a command that accepts them.
+- The shared parts of every stack script (finding the folder, reading the commands, running a check) are in `scripts/lib/stack.sh`.
 - Every check runs even when an earlier one fails, so the agent sees all failures at once. A
   passing check prints one line (`-- python lint passed: <command>`); a failing one prints its
   whole output between `== python lint FAILED: <command>` and `-- python lint FAILED`. The Stop
@@ -151,6 +174,26 @@ Consequences:
 - First measurement on the dogfood project (2026-11-20): `services/arithmetic.py` picked
   `test_service.py` (13 of 34 tests); `routers/arithmetic.py` matched nothing and ran all 34. A
   Stop with a change takes 7–8 s there.
+
+**Angular `affected`** (`stacks/angular/stack-check.sh`):
+
+- No `.ts` or `.html` file in the list: nothing runs, pass. Styles, `package.json`, `angular.json` and other config files don't trigger the check.
+- Otherwise `lint` and `types` run as written, on the whole project, and `tests` gets the affected spec files:
+  - changed spec files (`*.spec.ts`) that still exist;
+  - for each other changed file `<name>.ts` or `<name>.html`: the spec files anywhere in the folder named `<name>.spec.ts` (`user.service.ts` → `user.service.spec.ts`; a template `user.component.html` → `user.component.spec.ts`). Untracked specs count; gitignored ones don't.
+- **A changed file with no matching spec runs all tests** (`main.ts`, `app.config.ts`, `*.routes.ts`, a test setup file).
+- The specs are added as `--include=<path>` when `tests` contains `ng test`, otherwise as plain paths. `ng test` reads `--include` relative to the Angular project's root: right for a single-application workspace, where `dir` is that root; a multi-project workspace sets `tests` to `npx ng test <project> --watch=false` and its `dir` to the project's folder.
+- Not measured yet: no Angular dogfood project.
+
+**Java `affected`** (`stacks/java/stack-check.sh`):
+
+- No `.java` file in the list: nothing runs, pass. `build.gradle`, `pom.xml` and resources don't trigger the check.
+- Otherwise `lint` and `types` run as written, and `tests` gets the affected test classes, by simple name:
+  - changed test classes (`*Test.java`, `*Tests.java`, `*IT.java`) that still exist;
+  - for each other changed class `<Name>.java`: the test classes anywhere in the folder named `<Name>Test`, `<Name>Tests` or `<Name>IT`.
+- **A changed class with no matching test class runs all tests**: configuration classes, entities nobody named a test after, and test fixtures under `src/test/` that aren't test classes themselves.
+- The classes are added as `--tests <Class>` each when `tests` contains `gradle`, otherwise as `-Dtest=<Class>,… -Dsurefire.failIfNoSpecifiedTests=false` (Maven). Gradle matches a simple class name in any package. In a multi-project Gradle build, `--tests` fails in subprojects that have no matching test: set `tests` to that subproject's own task (`./gradlew :api:test --console=plain`).
+- Not measured yet: no Java dogfood project.
 
 ### 1.3 Approval phrases
 

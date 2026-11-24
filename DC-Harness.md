@@ -100,7 +100,7 @@ does nothing. Only the tech lead changes `.harness/`; the agent can't.
 - **Stack layer**: per language, a `stack-check.sh` that runs the checks in two sizes, plus
   default commands: `affected` (lint, types and only the tests touched by the change, run by the
   Stop hook after every agent turn) and `full` (lint, types and the whole test suite, run by
-  `/dc:implement` at the end of each checkpoint). v0 has only Python (ruff, mypy or pyright, pytest).
+  `/dc:implement` at the end of each checkpoint). v0 has Python (ruff, mypy, pytest), Angular (ESLint 9, tsc, `ng test` with Vitest; Karma/Jasmine or Jest by override) and Java with Spring Boot and Gradle (compile, `gradle test`).
 
 ### Spikes
 

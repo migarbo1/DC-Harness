@@ -1,0 +1,5 @@
+{
+    "lint": null,
+    "types": "./gradlew testClasses --console=plain -q",
+    "tests": "./gradlew test --console=plain"
+}

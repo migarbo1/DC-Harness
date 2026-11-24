@@ -1,0 +1,5 @@
+{
+    "lint": "npx eslint .",
+    "types": "npx tsc --noEmit -p tsconfig.app.json && npx tsc --noEmit -p tsconfig.spec.json",
+    "tests": "npx ng test --watch=false"
+}

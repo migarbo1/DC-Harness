@@ -105,6 +105,17 @@ ran() {
   [ "$status" -eq 0 ]
 }
 
+@test "dir: commands run in stackCommands.python.dir, and test paths are relative to it" {
+  jq -n '{schemaVersion: 1, stackCommands: {python: {dir: "app", lint: "test -d services",
+    types: null, tests: "echo TESTS"}}}' > .harness/config.json
+  touch app/services/test_calc.py
+  sc affected app/services/calc.py tests/test_calc.py
+  [ "$status" -eq 0 ]
+  ran lint
+  # tests/test_calc.py is outside app/, so neither the change nor that test file counts.
+  [ "$(tests_line)" = "TESTS services/test_calc.py" ]
+}
+
 # --- affected ------------------------------------------------------------------------
 
 @test "affected: no .py file changed, nothing runs" {

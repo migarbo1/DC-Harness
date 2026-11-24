@@ -12,7 +12,7 @@
     "stack": {
       "description": "Stacks in this repo, in the order their checks run. Each is a folder in stacks/.",
       "type": "array",
-      "items": { "type": "string" },
+      "items": { "type": "string", "examples": ["python", "angular", "java"] },
       "default": ["python"]
     },
     "stackCommands": {
@@ -21,6 +21,10 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "dir": {
+            "description": "The stack's folder, relative to the repo root. Commands run there and only changed files under it count. Unset: the repo root.",
+            "type": ["string", "null"]
+          },
           "lint": { "type": ["string", "null"] },
           "types": { "type": ["string", "null"] },
           "tests": {

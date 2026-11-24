@@ -42,6 +42,11 @@
 - `scripts/pr-text-length.sh`: counts the characters of the current task's `pr-text.md` (UTF-8, without `\r`) against `prTextMaxChars` (contracts §4.5).
 - `task-state.sh pr-text` prints `max-chars=`, `spec-approval=` and `plan-approval=` (`approved`, `changed` or `none`), so the PR text reports whether the approved spec and plan are still the files summarised (contracts §4.2).
 - `tests/pr-text-length.bats`, and `tests/templates.bats`: the pr-text template fits the default limit and the skill calls both scripts as allowed tools.
+- `angular` stack layer (`stacks/angular/`): ESLint 9 (`npx eslint .`), `tsc --noEmit` on the app and spec tsconfigs, and `npx ng test --watch=false` (Vitest). `affected` runs the `<name>.spec.ts` of every changed `.ts` or `.html` file, passed as `--include=<path>` to `ng test` or as plain paths to Jest or Vitest; a file with no spec runs all tests. Karma/Jasmine and Jest projects override `tests` (contracts §1.2).
+- `java` stack layer (`stacks/java/`), for Spring Boot with Gradle: no lint by default, `./gradlew testClasses` as the type check, `./gradlew test`. `affected` runs the `<Name>Test`, `<Name>Tests` and `<Name>IT` classes of every changed class, as `--tests <Class>` for Gradle or `-Dtest=…` for Maven; a class with no test, or a test fixture, runs all tests.
+- `stackCommands.<stack>.dir`: the stack's folder, for repos with a frontend and a backend side by side. Commands run there, only changed files under it count, and test paths are relative to it (contracts §1.2, `config.schema.json`).
+- `scripts/lib/stack.sh`: what every stack script shares (finding its folder, reading its commands, running a check). The Python layer now uses it, with the same behaviour.
+- `tests/stack-angular.bats`, `tests/stack-java.bats`, and a `dir` case in `tests/stack-check.bats`.
 
 ### Fixed
 
