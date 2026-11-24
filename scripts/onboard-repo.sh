@@ -112,7 +112,7 @@ else
     [ -f "$MARKETPLACE/.claude-plugin/marketplace.json" ] ||
       die "$MARKETPLACE has no .claude-plugin/marketplace.json"
     path=$(cd "$MARKETPLACE" && pwd)
-    command -v cygpath >/dev/null 2>&1 && path=$(cygpath -m "$path")
+    command -v cygpath >/dev/null 2>&1 && path=$(cygpath -w "$path")
     source_json=$(jq -cn --arg p "$path" '{source: "directory", path: $p}')
   else
     source_json=$(jq -cn --arg u "$MARKETPLACE" '{source: "git", url: $u}')

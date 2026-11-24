@@ -88,6 +88,13 @@ onboard_repo() {
   [ "$(jq -r '.permissions.allow[0]' .claude/settings.json | tr -d '\r')" = "Bash(ls)" ]
 }
 
+@test "--marketplace with a folder: the path in the form claude plugin marketplace add writes" {
+  onboard_repo --marketplace "$REPO_ROOT" .
+  local want=$REPO_ROOT
+  command -v cygpath >/dev/null 2>&1 && want=$(cygpath -w "$REPO_ROOT")
+  [ "$(jq -r '.extraKnownMarketplaces["dc-harness"].source.path' .claude/settings.json | tr -d '\r')" = "$want" ]
+}
+
 @test "--marketplace with a URL: a git source" {
   url="https://dev.azure.com/org/project/_git/nunsys-harness"
   onboard_repo --marketplace "$url" .
