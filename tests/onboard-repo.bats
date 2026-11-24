@@ -95,6 +95,15 @@ onboard_repo() {
   [ "$(jq -r '.extraKnownMarketplaces["dc-harness"].source.path' .claude/settings.json | tr -d '\r')" = "$want" ]
 }
 
+@test "--marketplace: keys in the order claude plugin marketplace add writes them" {
+  mkdir .claude
+  echo '{"extraKnownMarketplaces": {"dc-harness": {}, "other": {}}, "model": "x"}' > .claude/settings.json
+  onboard_repo --marketplace "$REPO_ROOT" .
+  [ "$(jq -c 'keys_unsorted' .claude/settings.json | tr -d '\r')" = '["model","enabledPlugins","extraKnownMarketplaces"]' ]
+  [ "$(jq -c '.extraKnownMarketplaces | keys_unsorted' .claude/settings.json | tr -d '\r')" = '["other","dc-harness"]' ]
+  [ "$(jq -c '.extraKnownMarketplaces["dc-harness"].source | keys_unsorted' .claude/settings.json | tr -d '\r')" = '["source","path"]' ]
+}
+
 @test "--marketplace with a URL: a git source" {
   url="https://dev.azure.com/org/project/_git/nunsys-harness"
   onboard_repo --marketplace "$url" .

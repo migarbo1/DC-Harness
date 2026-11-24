@@ -2,14 +2,12 @@
 
 DC-Harness is a plugin for coding agents that makes agent-assisted development consistent across teams while the developer keeps the knowledge of what was built. Its philosophy is "controlled but appealing". The control comes from a few human gates that need the developer's own words: the interview answers, the approval of the specifications, the approval of the plan, and a short assessment on the final diff. Everything else stays light. Developers are trusted, not monitored: artefacts stay on their machine and the only thing shared is a short PR text pasted into the pull request. The scope is one task per branch, from the task description to the PR text. Git stays in the developer's hands, there is no CI gate, and general engineering advice (TDD, review, security) is reused from existing skill libraries instead of rewritten.
 
-```text
-/dc:start-task <description> → "Specification agreed" → /dc:plan → "Plan agreed" → /clear → /dc:implement  → /dc:assessment → /dc:pr-text → paste in the PR
-```
+![DC-Harness workflow: /dc:start-task, clarifying questions, spec approval, /dc:plan, plan approval, /clear, /dc:implement per checkpoint, /dc:assessment, /dc:pr-text, paste in the PR](docs/workflow.svg)
 
-- [Installation](#installation): Claude Code on Windows (every developer).
-- [Onboarding](#onboarding): set a project repo up for the harness (tech lead, once per repo).
-- [Plugin setup](#plugin-setup): enable the plugin in an onboarded repo (every developer, once per repo).
-- [Usage](#usage): run a task (every developer).
+- [Installation](#installation): Claude Code on Windows (devs).
+- [Onboarding](#onboarding): set a project repo up for the harness (tech lead).
+- [Plugin setup](#plugin-setup): enable the plugin in an onboarded repo (devs, once per repo).
+- [Usage](#usage): run a task (devs).
 
 ## Installation
 

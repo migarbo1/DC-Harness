@@ -118,8 +118,13 @@ else
     source_json=$(jq -cn --arg u "$MARKETPLACE" '{source: "git", url: $u}')
   fi
   mkdir -p .claude || die "can't create .claude/"
+  # Key order as `claude plugin marketplace add` leaves it (the marketplace it adds goes last,
+  # after enabledPlugins), so running it after onboarding doesn't show up as a diff.
   json_update .claude/settings.json \
-    '(. // {}) | .extraKnownMarketplaces[$m] = {source: $s} | .enabledPlugins[$id] = true' \
+    '(. // {}) | .enabledPlugins[$id] = true
+     | (.extraKnownMarketplaces // {} | del(.[$m])) as $others
+     | del(.extraKnownMarketplaces)
+     | .extraKnownMarketplaces = ($others + {($m): {source: $s}})' \
     --arg m "$MARKETPLACE_NAME" --arg id "$PLUGIN_ID" --argjson s "$source_json" ||
     die "can't update .claude/settings.json (is it valid JSON?)"
   ok ".claude/settings.json enables $PLUGIN_ID from $(jq -r '.path // .url' <<< "$source_json" | tr -d '\r')"
