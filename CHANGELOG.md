@@ -37,6 +37,11 @@
 - `templates/assessment.md`: header, Sources, one block per question (Exchange with quoted answers and grades, Expected answer, Result), and the final Result with the `Score:` line.
 - `task-state.sh assessment` also prints `pass-threshold=` and `max-retries=` (contracts §4.2), so the skill doesn't read the config itself.
 - `tests/templates.bats`: the template's score placeholder doesn't finish the assessment, the filled-in line does; the assessment skill calls the gatekeeper as an allowed tool.
+- `/dc:pr-text` skill (`skills/pr-text/SKILL.md`): the `task-state.sh` gatekeeper, `pr-text.md` written only from `spec.md`, `plan.md`, `implementation-notes.md`, `assessment.md` and `approvals.json` (What, Why, How, Changes made, Deviations from the plan, Not touched, Potential concerns, Testing, and a DC-Harness section with the gate table, the `Score:` line copied exactly and each question with the developer's last answer word for word). Azure DevOps rules (plain Markdown, paths in backticks, no accidental `#`/`!`/`@` links, no attribution line), a length check with a fixed shortening order, and a closing message telling the developer to paste the text by hand. Never commits, pushes or opens the PR; a re-run regenerates the text.
+- `templates/pr-text.md`: the PR description skeleton, with the Azure DevOps rules in its comment.
+- `scripts/pr-text-length.sh`: counts the characters of the current task's `pr-text.md` (UTF-8, without `\r`) against `prTextMaxChars` (contracts §4.5).
+- `task-state.sh pr-text` prints `max-chars=`, `spec-approval=` and `plan-approval=` (`approved`, `changed` or `none`), so the PR text reports whether the approved spec and plan are still the files summarised (contracts §4.2).
+- `tests/pr-text-length.bats`, and `tests/templates.bats`: the pr-text template fits the default limit and the skill calls both scripts as allowed tools.
 
 ### Fixed
 

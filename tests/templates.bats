@@ -83,3 +83,37 @@ setup() {
   grep -qF 'disable-model-invocation: true' "$skill"
   grep -qF '.assessment-key.md' "$skill"
 }
+
+# strip_comments FILE: FILE without its HTML comments (one-line or multi-line), as the skill
+# leaves it.
+strip_comments() {
+  awk '/<!--/ { c = 1 } !c { print } /-->/ { c = 0 }' "$1"
+}
+
+@test "pr-text.md: the template, comments removed, fits the default prTextMaxChars" {
+  stage finished
+  strip_comments "$TEMPLATES/pr-text.md" > "$T/pr-text.md"
+  run grep -c '<!--' "$T/pr-text.md"
+  [ "$output" -eq 0 ]
+  grep -q '^## DC-Harness$' "$T/pr-text.md"
+  grep -q '^1\. \*\*' "$T/pr-text.md"
+  run --separate-stderr bash "$REPO_ROOT/plugins/dc-harness/scripts/pr-text-length.sh"
+  [ "$status" -eq 0 ]
+}
+
+@test "pr-text.md: carries the Score line, and no checkboxes or HTML outside comments" {
+  grep -qE '^Score: ' "$TEMPLATES/pr-text.md"
+  run grep -n -- '- \[ \]' "$TEMPLATES/pr-text.md"
+  [ "$status" -eq 1 ]
+  run grep -nE '<(details|summary|br|div|img)' < <(strip_comments "$TEMPLATES/pr-text.md")
+  [ "$status" -eq 1 ]
+}
+
+@test "pr-text skill: calls task-state.sh pr-text and pr-text-length.sh as allowed, and can't be started by the model" {
+  local skill="$REPO_ROOT/plugins/dc-harness/skills/pr-text/SKILL.md"
+  grep -qF 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" pr-text "${CLAUDE_SESSION_ID}"' "$skill"
+  grep -qF 'Bash(bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" pr-text *)' "$skill"
+  grep -qF 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/pr-text-length.sh"' "$skill"
+  grep -qF 'Bash(bash "${CLAUDE_PLUGIN_ROOT}/scripts/pr-text-length.sh")' "$skill"
+  grep -qF 'disable-model-invocation: true' "$skill"
+}

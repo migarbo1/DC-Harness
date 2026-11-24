@@ -408,13 +408,44 @@ approve_plan() {
 
 # --- pr-text -------------------------------------------------------------------
 
-@test "pr-text: closes the gate after the assessment" {
+@test "pr-text: closes the gate after the assessment, prints the limit and both approvals" {
   stage assessed
   ts pr-text sess
   [ "$status" -eq 0 ]
-  [ "$output" = "task-dir=.tasks/feature/x" ]
+  [ "${lines[0]}" = "task-dir=.tasks/feature/x" ]
+  [ "${lines[1]}" = "max-chars=3000" ]
+  [ "${lines[2]}" = "spec-approval=approved" ]
+  [ "${lines[3]}" = "plan-approval=approved" ]
+  [ "${#lines[@]}" -eq 4 ]
   [ "$(state step)" = "pr-text" ]
   [ "$(state gate)" = "null" ]
+}
+
+@test "pr-text: max-chars follows the project's prTextMaxChars" {
+  stage assessed
+  echo '{"prTextMaxChars": 1500}' > .harness/config.json
+  ts pr-text sess
+  [ "$status" -eq 0 ]
+  [ "${lines[1]}" = "max-chars=1500" ]
+}
+
+@test "pr-text: an approval is 'changed' when the file was edited after it" {
+  stage assessed
+  echo "edited" >> "$T/plan.md"
+  ts pr-text sess
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "spec-approval=approved" ]
+  [ "${lines[3]}" = "plan-approval=changed" ]
+}
+
+@test "pr-text: an approval is 'none' with no recorded approval or no file" {
+  stage assessed
+  jq 'del(.spec)' "$T/approvals.json" > "$T/a" && mv "$T/a" "$T/approvals.json"
+  rm "$T/plan.md"
+  ts pr-text sess
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "spec-approval=none" ]
+  [ "${lines[3]}" = "plan-approval=none" ]
 }
 
 @test "pr-text: can be re-run on a finished task" {

@@ -11,7 +11,7 @@
 #
 # Exit codes and output (contracts §4.2):
 #   0  allowed: key=value lines on stdout (task-dir=, plus commit-ref=, approval-phrase=,
-#      checkpoint=, questions=)
+#      checkpoint=, questions=, max-chars=, …)
 #   1  refused: one line on stdout; the skill prints it exactly and stops
 #   2  can't run: one line on stderr starting with "dc: internal:"
 
@@ -88,6 +88,20 @@ plan_phrase() { config_get "$ROOT" '.planApprovalPhrase[0] // "Plan agreed"'; }
 # approved_hash KEY: the sha256 recorded for the spec or plan approval, or nothing.
 approved_hash() {
   json_get "$TASK_DIR/approvals.json" ".$1.sha256 // empty" 2>/dev/null
+}
+
+# approval_status KEY: for the PR text (contracts §4.2), whether spec.md or plan.md is still
+# the approved file: `approved` (hash matches), `changed` (approved, edited since) or `none`.
+approval_status() {
+  local recorded
+  recorded=$(approved_hash "$1")
+  if [ -z "$recorded" ] || [ ! -f "$TASK_DIR/$1.md" ]; then
+    echo none
+  elif [ "$recorded" = "$(sha256_file "$TASK_DIR/$1.md")" ]; then
+    echo approved
+  else
+    echo changed
+  fi
 }
 
 # plan_checkpoints: prints the checkpoint numbers of plan.md headings, in file order
@@ -333,6 +347,11 @@ case "$SKILL" in
     echo "questions=$(config_get "$ROOT" '.assessment.numQuestions')"
     echo "pass-threshold=$(config_get "$ROOT" '.assessment.passThreshold')"
     echo "max-retries=$(config_get "$ROOT" '.assessment.maxRetriesPerQuestion')"
+    ;;
+  pr-text)
+    echo "max-chars=$(config_get "$ROOT" '.prTextMaxChars')"
+    echo "spec-approval=$(approval_status spec)"
+    echo "plan-approval=$(approval_status plan)"
     ;;
 esac
 exit 0

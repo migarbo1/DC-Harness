@@ -62,7 +62,7 @@ The tech lead's settings for one project.
 | `assessment.numQuestions` | integer | `4` | `/dc:assessment` | How many questions the assessment asks. Fixed, not based on the diff size |
 | `assessment.passThreshold` | number 0–1 | `0.7` | `/dc:assessment` | Passed when passed ÷ total ≥ threshold. With 4 questions, 3/4 passes and 2/4 doesn't |
 | `assessment.maxRetriesPerQuestion` | integer | `2` | `/dc:assessment` | Retries allowed after the first wrong or "not sure" answer |
-| `prTextMaxChars` | integer | `3000` | `/dc:pr-text` | Hard limit on `pr-text.md`. Azure DevOps PR descriptions allow 4,000 |
+| `prTextMaxChars` | integer | `3000` | `task-state.sh pr-text`, `pr-text-length.sh` | Hard limit on `pr-text.md`. Azure DevOps PR descriptions allow 4,000 |
 
 ```json
 {
@@ -394,6 +394,7 @@ Success output, for the skill to use instead of working these out again:
 | `plan` | `approval-phrase=<first planApprovalPhrase>` (for the closing message) |
 | `implement` | `checkpoint=CP<n>`: the first one not done |
 | `assessment` | `commit-ref=<sha>`, `questions=<assessment.numQuestions>`, `pass-threshold=<assessment.passThreshold>`, `max-retries=<assessment.maxRetriesPerQuestion>` |
+| `pr-text` | `max-chars=<prTextMaxChars>`, `spec-approval=<status>`, `plan-approval=<status>`. The status is `approved` (the file's SHA-256 equals the recorded approval), `changed` (approved, edited since) or `none` (no approval recorded, or no file). The PR text reports it in its gate table |
 
 Every refusal ends with the next action and names commands in the full `/dc:` form.
 
@@ -478,7 +479,20 @@ Allowed. For example, `/dc:plan` after `/dc:implement` has started: `step` goes 
 needed again. Notes for checkpoints already done stay as they are. `/dc:start-task` is the
 exception: S1 refuses it while the task is open.
 
-### 4.5 Not in v0
+### 4.5 `pr-text-length.sh`
+
+`/dc:pr-text` runs it after writing `pr-text.md`, because the agent can't count characters reliably. It reads nothing but the config and the file, and writes nothing.
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/pr-text-length.sh"
+```
+
+- Finds the task of the current branch as `task-state.sh` does (G1–G3), and counts the characters of `<task-dir>/pr-text.md` after removing `\r`, in a UTF-8 locale (`ñ` is one character). Pasting into the browser turns CRLF into one line break, so `\r` doesn't count.
+- Exit `0`: within `prTextMaxChars`; prints `chars=<n> max=<m>`.
+- Exit `1`: over the limit; prints `pr-text.md has <n> characters; the limit is <m>. Shorten it by <n-m> or more.`
+- Exit `2`: can't run (not a git repo, not onboarded, detached HEAD, no task, no `pr-text.md`, `prTextMaxChars` not a whole number, arguments given), with a `dc: internal:` line on stderr.
+
+### 4.6 Not in v0
 
 - **Rebase check.** DC-Harness.md says not to merge or rebase during a task. A check such as
   `git merge-base --is-ancestor <commitRef> HEAD` in `assessment` would catch a rebase that lost
