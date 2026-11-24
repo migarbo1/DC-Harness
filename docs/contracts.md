@@ -391,6 +391,7 @@ Success output, for the skill to use instead of working these out again:
 | --- | --- |
 | all | `task-dir=.tasks/<folder>` |
 | `start-task` | `commit-ref=<sha>`, `approval-phrase=<first specApprovalPhrase>` (for the closing message) |
+| `plan` | `approval-phrase=<first planApprovalPhrase>` (for the closing message) |
 | `implement` | `checkpoint=CP<n>`: the first one not done |
 | `assessment` | `commit-ref=<sha>`, `questions=<assessment.numQuestions>` |
 

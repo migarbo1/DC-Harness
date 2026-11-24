@@ -26,7 +26,7 @@ Copyright (c) 2025 Addy Osmani. MIT licence.
   and surfacing assumptions. From `spec-driven-development` (Phase 1), turning vague requirements
   into testable success criteria, and the spec template, trimmed.
 - `/dc:plan`: from `planning-and-task-breakdown`, read-only planning, the dependency graph,
-  vertical slices, the task template and checkpoints.
+  vertical slices, the task template, the task sizes and checkpoints.
 - `/dc:implement`: from `incremental-implementation`, the implement → test → verify cycle and the
   scope-discipline rules, without its commit steps.
 - `/dc:pr-text`: from `git-workflow-and-versioning` ("Change Summaries"), the blocks "changes
@@ -58,7 +58,8 @@ Copyright (c) 2026 Rodrigo Vieira. MIT licence.
 
 Copyright GitHub, Inc. MIT licence.
 
-- `/dc:plan`: from the plan template, the structure of the plan.
+- `/dc:plan`: from the plan template, the structure of the plan (Summary, Technical context,
+  and recording the structure decisions with their reasons).
 
 ## Ideas only, no text
 

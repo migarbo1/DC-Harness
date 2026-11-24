@@ -209,11 +209,13 @@ ts() {
 
 # --- plan ----------------------------------------------------------------------
 
-@test "plan: sets step, gate and planSession, prints task-dir only" {
+@test "plan: sets step, gate and planSession, prints task-dir and approval-phrase" {
   stage spec-approved
   ts plan sess-plan
   [ "$status" -eq 0 ]
-  [ "$output" = "task-dir=.tasks/feature/x" ]
+  [ "${lines[0]}" = "task-dir=.tasks/feature/x" ]
+  [ "${lines[1]}" = "approval-phrase=Plan agreed" ]
+  [ "${#lines[@]}" -eq 2 ]
   [ "$(state step)" = "plan" ]
   [ "$(state gate)" = "plan" ]
   [ "$(state planSession)" = "sess-plan" ]

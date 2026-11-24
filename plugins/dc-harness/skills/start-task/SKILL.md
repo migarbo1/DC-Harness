@@ -35,6 +35,8 @@ This skill only produces `spec.md`. It never writes code, never plans, never com
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/task-state.sh" start-task "${CLAUDE_SESSION_ID}"
    ```
 
+   Append nothing to it (no `; echo $?`, no `$LASTEXITCODE`, no pipe): the harness allows it only on its own. Tell the result from the output:
+
    - Exit `1`: print its one line exactly, and stop.
    - Exit `2`: print its `dc: internal:` line exactly, and stop.
    - Exit `0`: it prints `task-dir=…`, `commit-ref=…` and `approval-phrase=…`. Keep the three

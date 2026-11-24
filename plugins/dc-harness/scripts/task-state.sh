@@ -322,6 +322,9 @@ case "$SKILL" in
     echo "commit-ref=$commit_ref"
     echo "approval-phrase=$(spec_phrase)"
     ;;
+  plan)
+    echo "approval-phrase=$(plan_phrase)"
+    ;;
   implement)
     echo "checkpoint=$NEXT_CP"
     ;;
